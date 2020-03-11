@@ -12,7 +12,7 @@
 
 #define RED_LED 18 //port b pin 18
 #define GREEN_LED 19 //port b pin 19
-#define BLUE_LED 1 //port b pin 1
+#define BLUE_LED 1 //port D pin 1
 #define MASK(x) (1 << x)
 
 osMutexId_t myMutex;
@@ -24,13 +24,6 @@ static void delay(volatile uint32_t nof) {
 		__ASM("NOP");
 		nof--;
 	}
-}
-
-void offRGB(void){
-	//turn off all leds
-	PTB->PSOR = MASK(RED_LED);
-	PTB->PSOR = MASK(GREEN_LED);
-	PTD->PSOR = MASK(BLUE_LED);	
 }
 
 void InitGPIO(void)
@@ -49,6 +42,12 @@ void InitGPIO(void)
 	PTD->PDDR |= MASK(BLUE_LED);
 }
 
+void offRGB(void){
+	//turn off all leds
+	PTB->PSOR = MASK(RED_LED);
+	PTB->PSOR = MASK(GREEN_LED);
+	PTD->PSOR = MASK(BLUE_LED);	
+}
 
 //enumeration state_t to hold the state of led, on or off
 typedef enum{
@@ -131,8 +130,9 @@ int main (void) {
  
   osKernelInitialize();                 // Initialize CMSIS-RTOS
 	//myMutex = osMutexNew(NULL);
-  osThreadNew(led_green_thread, NULL, &thread_attr);    // Create application main thread
+  //osThreadNew(led_green_thread, NULL, &thread_attr);    // Create application main thread
 	osThreadNew(led_red_thread, NULL, NULL);    // Create application main thread
+	osThreadNew(led_green_thread, NULL, NULL);
   osKernelStart();                      // Start thread execution
   for (;;) {}
 }

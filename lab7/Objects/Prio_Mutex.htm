@@ -3,7 +3,7 @@
 <title>Static Call Graph - [.\Objects\Prio_Mutex.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image .\Objects\Prio_Mutex.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Wed Mar 11 15:39:27 2020
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Wed Mar 11 22:33:40 2020
 <BR><P>
 <H3>Maximum Stack Usage =        120 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -67,8 +67,8 @@ Function Pointers
  <LI><a href="#[19]">UART2_IRQHandler</a> from startup_mkl25z4.o(.text) referenced from startup_mkl25z4.o(RESET)
  <LI><a href="#[23]">USB0_IRQHandler</a> from startup_mkl25z4.o(.text) referenced from startup_mkl25z4.o(RESET)
  <LI><a href="#[45]">__main</a> from __main.o(!!!main) referenced from startup_mkl25z4.o(.text)
- <LI><a href="#[42]">led_green_thread</a> from main.o(i.led_green_thread) referenced from main.o(i.main)
- <LI><a href="#[43]">led_red_thread</a> from main.o(i.led_red_thread) referenced from main.o(i.main)
+ <LI><a href="#[43]">led_green_thread</a> from main.o(i.led_green_thread) referenced from main.o(i.main)
+ <LI><a href="#[42]">led_red_thread</a> from main.o(i.led_red_thread) referenced from main.o(i.main)
  <LI><a href="#[39]">osRtxIdleThread</a> from rtx_config.o(i.osRtxIdleThread) referenced from rtx_thread.o(.text.osRtxThreadStartup)
  <LI><a href="#[3e]">osRtxMemoryInit</a> from rtx_memory.o(.text.osRtxMemoryInit) referenced from rtx_kernel.o(.text.svcRtxKernelInitialize)
  <LI><a href="#[3f]">osRtxMessageQueuePostProcess</a> from rtx_msgqueue.o(.text.osRtxMessageQueuePostProcess) referenced from rtx_msgqueue.o(.text.svcRtxMessageQueueNew)
@@ -496,8 +496,8 @@ Global Symbols
 <P><STRONG><a name="[99]"></a>osDelay</STRONG> (Thumb, 40 bytes, Stack size 8 bytes, rtx_delay.o(.text.osDelay))
 <BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = osDelay
 </UL>
-<BR>[Called By]<UL><LI><a href="#[43]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_red_thread
-<LI><a href="#[42]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_green_thread
+<BR>[Called By]<UL><LI><a href="#[42]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_red_thread
+<LI><a href="#[43]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_green_thread
 </UL>
 
 <P><STRONG><a name="[9d]"></a>osKernelGetState</STRONG> (Thumb, 48 bytes, Stack size 8 bytes, rtx_kernel.o(.text.osKernelGetState), UNUSED, KEPT)
@@ -547,12 +547,10 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[3b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osRtxTimerTick
 </UL>
 
-<P><STRONG><a name="[93]"></a>osMutexAcquire</STRONG> (Thumb, 40 bytes, Stack size 8 bytes, rtx_mutex.o(.text.osMutexAcquire))
+<P><STRONG><a name="[93]"></a>osMutexAcquire</STRONG> (Thumb, 40 bytes, Stack size 8 bytes, rtx_mutex.o(.text.osMutexAcquire), UNUSED, KEPT)
 <BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = osMutexAcquire
 </UL>
 <BR>[Called By]<UL><LI><a href="#[46]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;_mutex_acquire
-<LI><a href="#[43]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_red_thread
-<LI><a href="#[42]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_green_thread
 </UL>
 
 <P><STRONG><a name="[94]"></a>osMutexDelete</STRONG> (Thumb, 40 bytes, Stack size 8 bytes, rtx_mutex.o(.text.osMutexDelete), UNUSED, KEPT)
@@ -567,12 +565,10 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[48]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;_mutex_initialize
 </UL>
 
-<P><STRONG><a name="[96]"></a>osMutexRelease</STRONG> (Thumb, 40 bytes, Stack size 8 bytes, rtx_mutex.o(.text.osMutexRelease))
+<P><STRONG><a name="[96]"></a>osMutexRelease</STRONG> (Thumb, 40 bytes, Stack size 8 bytes, rtx_mutex.o(.text.osMutexRelease), UNUSED, KEPT)
 <BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = osMutexRelease
 </UL>
 <BR>[Called By]<UL><LI><a href="#[49]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;_mutex_release
-<LI><a href="#[43]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_red_thread
-<LI><a href="#[42]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_green_thread
 </UL>
 
 <P><STRONG><a name="[69]"></a>osRtxKernelPreInit</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, rtx_kernel.o(.text.osRtxKernelPreInit))
@@ -847,8 +843,8 @@ Global Symbols
 <P><STRONG><a name="[46]"></a>_mutex_acquire</STRONG> (Thumb, 24 bytes, Stack size 8 bytes, rtx_lib.o(i._mutex_acquire), UNUSED, KEPT)
 <BR><BR>[Stack]<UL><LI>Max Depth = 24<LI>Call Chain = _mutex_acquire &rArr; os_kernel_is_active &rArr; osKernelGetState
 </UL>
-<BR>[Calls]<UL><LI><a href="#[92]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;os_kernel_is_active
-<LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osMutexAcquire
+<BR>[Calls]<UL><LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osMutexAcquire
+<LI><a href="#[92]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;os_kernel_is_active
 </UL>
 
 <P><STRONG><a name="[47]"></a>_mutex_free</STRONG> (Thumb, 12 bytes, Stack size 8 bytes, rtx_lib.o(i._mutex_free), UNUSED, KEPT)
@@ -867,8 +863,8 @@ Global Symbols
 <P><STRONG><a name="[49]"></a>_mutex_release</STRONG> (Thumb, 20 bytes, Stack size 8 bytes, rtx_lib.o(i._mutex_release), UNUSED, KEPT)
 <BR><BR>[Stack]<UL><LI>Max Depth = 24<LI>Call Chain = _mutex_release &rArr; os_kernel_is_active &rArr; osKernelGetState
 </UL>
-<BR>[Calls]<UL><LI><a href="#[92]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;os_kernel_is_active
-<LI><a href="#[96]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osMutexRelease
+<BR>[Calls]<UL><LI><a href="#[96]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osMutexRelease
+<LI><a href="#[92]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;os_kernel_is_active
 </UL>
 
 <P><STRONG><a name="[51]"></a>_platform_post_stackheap_init</STRONG> (Thumb, 8 bytes, Stack size 8 bytes, rtx_lib.o(i._platform_post_stackheap_init))
@@ -884,26 +880,22 @@ Global Symbols
 </UL>
 <BR>[Calls]<UL><LI><a href="#[98]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;offRGB
 </UL>
-<BR>[Called By]<UL><LI><a href="#[43]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_red_thread
-<LI><a href="#[42]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_green_thread
+<BR>[Called By]<UL><LI><a href="#[42]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_red_thread
+<LI><a href="#[43]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_green_thread
 </UL>
 
-<P><STRONG><a name="[42]"></a>led_green_thread</STRONG> (Thumb, 56 bytes, Stack size 0 bytes, main.o(i.led_green_thread))
-<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = led_green_thread &rArr; osMutexRelease
+<P><STRONG><a name="[43]"></a>led_green_thread</STRONG> (Thumb, 36 bytes, Stack size 0 bytes, main.o(i.led_green_thread))
+<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = led_green_thread &rArr; osDelay
 </UL>
-<BR>[Calls]<UL><LI><a href="#[96]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osMutexRelease
-<LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osMutexAcquire
-<LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osDelay
+<BR>[Calls]<UL><LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osDelay
 <LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_control
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> main.o(i.main)
 </UL>
-<P><STRONG><a name="[43]"></a>led_red_thread</STRONG> (Thumb, 56 bytes, Stack size 0 bytes, main.o(i.led_red_thread))
-<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = led_red_thread &rArr; osMutexRelease
+<P><STRONG><a name="[42]"></a>led_red_thread</STRONG> (Thumb, 36 bytes, Stack size 0 bytes, main.o(i.led_red_thread))
+<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = led_red_thread &rArr; osDelay
 </UL>
-<BR>[Calls]<UL><LI><a href="#[96]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osMutexRelease
-<LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osMutexAcquire
-<LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osDelay
+<BR>[Calls]<UL><LI><a href="#[99]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osDelay
 <LI><a href="#[97]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;led_control
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> main.o(i.main)
