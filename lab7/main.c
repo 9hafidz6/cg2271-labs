@@ -60,10 +60,7 @@ void led_control(int LED_COLOR, state_t state){
 	//RED_LED
 	if(LED_COLOR == RED_LED){
 		if(state == led_on){
-			PTB->PCOR = MASK(RED_LED);
-			PTB->PSOR = MASK(GREEN_LED);
-			PTD->PSOR = MASK(BLUE_LED);	
-		}
+			PTB->PCOR = MASK(RED_LED);		}
 		else if(state == led_off){
 			offRGB();
 		}
@@ -71,9 +68,7 @@ void led_control(int LED_COLOR, state_t state){
 	//GREEN_LED
 	if(LED_COLOR == GREEN_LED){
 		if(state == led_on){
-			PTB->PSOR = MASK(RED_LED);
 			PTB->PCOR = MASK(GREEN_LED);
-			PTD->PSOR = MASK(BLUE_LED);	
 		}
 		else if(state == led_off){
 			offRGB();
@@ -82,8 +77,6 @@ void led_control(int LED_COLOR, state_t state){
 	//BLUE_LED
 	if(LED_COLOR == BLUE_LED){
 		if(state == led_on){
-			PTB->PSOR = MASK(RED_LED);
-			PTB->PSOR = MASK(GREEN_LED);
 			PTD->PCOR = MASK(BLUE_LED);	
 		}
 		else if(state == led_off){
@@ -95,7 +88,7 @@ void led_control(int LED_COLOR, state_t state){
 void led_green_thread (void *argument) {
   // ...
   for (;;) {
-		//osMutexAcquire(myMutex,osWaitForever);
+		osMutexAcquire(myMutex,osWaitForever);
 		led_control(GREEN_LED,led_on);
 		osDelay(1000);
 		//delay(0x80000);
@@ -109,14 +102,14 @@ void led_green_thread (void *argument) {
 void led_red_thread (void *argument) {
   // ...
   for (;;) {
-		//osMutexAcquire(myMutex,osWaitForever);
+		osMutexAcquire(myMutex,osWaitForever);
 		led_control(RED_LED,led_on);
 		osDelay(1000);
 		//delay(0x80000);
 		led_control(RED_LED,led_off);
 		osDelay(1000);
 		//delay(0x80000);
-		//osMutexRelease(myMutex);
+		osMutexRelease(myMutex);
 	}
 }
  
@@ -129,9 +122,9 @@ int main (void) {
   // ...
  
   osKernelInitialize();                 // Initialize CMSIS-RTOS
-	//myMutex = osMutexNew(NULL);
+	myMutex = osMutexNew(NULL);
   //osThreadNew(led_green_thread, NULL, &thread_attr);    // Create application main thread
-	osThreadNew(led_red_thread, NULL, NULL);    // Create application main thread
+	osThreadNew(led_red_thread, NULL, &thread_attr);    // Create application main thread
 	osThreadNew(led_green_thread, NULL, NULL);
   osKernelStart();                      // Start thread execution
   for (;;) {}
