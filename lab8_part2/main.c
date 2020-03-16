@@ -168,30 +168,6 @@ void initUART2(uint32_t baud_rate)
 	UART2->C2 |= ((UART_C2_TE_MASK) | (UART_C2_RE_MASK));
 }
 
-void UART2_IRQHandler(void) {
-	NVIC_ClearPendingIRQ(UART2_IRQn);
-	rx_data = 
-	if (UART2->S1 & UART_S1_TDRE_MASK) {
-		// can send another character
-		if (!Q_Empty(&tx_q)) {
-		UART2->D = Q_Dequeue(&tx_q);
-		} else {
-		// queue is empty so disable tx
-		UART2->C2 &= ~UART_C2_TIE_MASK;
-		}
-	}
-	if (UART2->S1 & UART_S1_RDRF_MASK) {
-		// received a character
-		if (!Q_Full(&rx_q)) {
-			Q_Enqueue(&rx_q, UART2->D);
-		} else {
-		// error -queue full.
-		while (1)
-			;
-		}
-	}
-}
-
 //delay for about 1 second
 void delay1(){
 	while(count < time){
@@ -268,12 +244,27 @@ void led_red_thread (void *argument) {
 		//osSemaphoreRelease(mySem);
 	}
 }
+
+void UART2_IRQHandler(void) {
+	NVIC_ClearPendingIRQ(UART2_IRQn);
+	rx_data = UART2->D;
+
+	if (UART2->S1 & UART_S1_RDRF_MASK) {
+		if(LED_MASK(rx_data) == LED_RED){
+			if(BIT0_MASK(rx_data)){
+				led_control(RED_LED, led_on);
+			}
+			else
+				led_control(RED_LED, led_off);
+		}
+		//if(LED_MASK(rx_data) == LED_GREEN)
+	}
+}
  
 int main (void) {
  
   // System Initialization
   SystemCoreClockUpdate();
-	//initSwitch();
 	InitGPIO();
 	initUART2(BAUD_RATE);
 	offRGB();

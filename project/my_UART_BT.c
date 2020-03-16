@@ -1,3 +1,10 @@
+/*----------------------------------------------------------------------------
+ * CMSIS-RTOS 'main' function template
+ *---------------------------------------------------------------------------*/
+ 
+#include "RTE_Components.h"
+#include  CMSIS_device_header
+#include "cmsis_os2.h"
 #include "MKL25Z4.h"                    // Device header
 
 #define PTB0_Pin 0
@@ -15,13 +22,28 @@
 #define GREEN_LED 19 //port b pin 19
 #define BLUE_LED 1 //port b pin 1
 #define MASK(x) (1 << x)
-
+ 
+/*----------------------------------------------------------------------------
+ * Application main thread
+ *---------------------------------------------------------------------------*/
+void app_main (void *argument) {
+ 
+  // ...
+  for (;;) {}
+}
 /* Delay routine */
 static void delay(volatile uint32_t nof) {
 	while(nof!=0) {
 		__ASM("NOP");
 		nof--;
 	}
+}
+
+void offRGB(void){
+	//turn off all leds
+	PTB->PSOR = MASK(RED_LED);
+	PTB->PSOR = MASK(GREEN_LED);
+	PTD->PSOR = MASK(BLUE_LED);	
 }
 
 void InitGPIO(void)
@@ -98,22 +120,15 @@ void led_control(int led_mapping[][2], int m, state_t state){
 	//on red led
 	if(state == led_on){
 		PTB->PCOR = MASK(RED_LED);
+		PTD->PSOR = MASK(BLUE_LED);
 		PTB->PSOR = MASK(GREEN_LED);
-		PTB->PSOR = MASK(BLUE_LED);
 	}
 	//off red led
-	if(state == led_off){
+	else if(state == led_off){
 		PTB->PSOR = MASK(RED_LED);
-		PTB->PSOR = MASK(GREEN_LED);
-		PTB->PSOR = MASK(BLUE_LED);
+		PTD->PSOR = MASK(BLUE_LED);
+		PTB->PSOR = MASK(GREEN_LED);		
 	}
-}
-
-void offRGB(void){
-	//turn off all leds
-	PTB->PSOR = MASK(RED_LED);
-	PTB->PSOR = MASK(GREEN_LED);
-	PTB->PSOR = MASK(BLUE_LED);	
 }
 
 // main program
@@ -139,3 +154,4 @@ int main(void){
 		}
 	}
 }
+
