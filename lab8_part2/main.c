@@ -261,17 +261,17 @@ void UART2_IRQHandler(void) {
 		
 		if(LED_MASK(rx_data) == LED_RED){
 			if(BIT0_MASK(rx_data)){
-				led_control(RED_LED, led_on);
+				osSemaphoreRelease(myREDSem);
 			}
-			else
-				led_control(RED_LED, led_off);
+			//else
+				//osSemaphoreAcquire(myREDSem,osWaitForever);
 		}
 		if(LED_MASK(rx_data) == LED_GREEN){
 			if(BIT0_MASK(rx_data)){
-				led_control(GREEN_LED, led_on);
+				osSemaphoreRelease(myGREENSem);
 			}
-			else
-				led_control(GREEN_LED, led_off);
+			//else
+				//osSemaphoreAcquire(myGREENSem,osWaitForever);
 		}
 	}
 }
