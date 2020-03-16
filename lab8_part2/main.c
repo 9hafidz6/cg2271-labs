@@ -20,9 +20,13 @@
 #define UART_RX_PORTE23 23
 #define UART2_INT_PRIO 128
 
+/*----------------------------------------------------------*/
+//lab8 part 2
+#define LED_GREEN 4 //0b00000100
 #define LED_RED 2 //0b00000010
 #define LED_MASK(x) (x & 0x06)
 #define BIT0_MASK(x) (x & 0x01)
+/*----------------------------------------------------------*/
 
 #define RED_LED 18 //port b pin 18
 #define GREEN_LED 19 //port b pin 19
@@ -166,6 +170,9 @@ void initUART2(uint32_t baud_rate)
 	
 	// Enable transmitter and receiver
 	UART2->C2 |= ((UART_C2_TE_MASK) | (UART_C2_RE_MASK));
+	NVIC_SetPriority(UART2_IRQn, 128);
+	NVIC_ClearPendingIRQ(UART2_IRQn);
+	NVIC_EnableIRQ(UART2_IRQn);
 }
 
 //delay for about 1 second
@@ -247,9 +254,11 @@ void led_red_thread (void *argument) {
 
 void UART2_IRQHandler(void) {
 	NVIC_ClearPendingIRQ(UART2_IRQn);
-	rx_data = UART2->D;
 
+	//if receive any data 
 	if (UART2->S1 & UART_S1_RDRF_MASK) {
+		rx_data = UART2->D;
+		
 		if(LED_MASK(rx_data) == LED_RED){
 			if(BIT0_MASK(rx_data)){
 				led_control(RED_LED, led_on);
@@ -257,7 +266,13 @@ void UART2_IRQHandler(void) {
 			else
 				led_control(RED_LED, led_off);
 		}
-		//if(LED_MASK(rx_data) == LED_GREEN)
+		if(LED_MASK(rx_data) == LED_GREEN){
+			if(BIT0_MASK(rx_data)){
+				led_control(GREEN_LED, led_on);
+			}
+			else
+				led_control(GREEN_LED, led_off);
+		}
 	}
 }
  
