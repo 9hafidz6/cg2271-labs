@@ -23,7 +23,7 @@
 /*----------------------------------------------------------*/
 //lab8 part 2
 #define LED_GREEN 4
-#define LED_RED 1
+#define LED_RED 2
 #define LED_MASK(x) (x & 0x06)
 #define BIT0_MASK(x) (x & 0x01)
 /*----------------------------------------------------------*/
@@ -53,6 +53,54 @@ static void delay(volatile uint32_t nof) {
 	}
 }
 
+typedef struct{
+	unsigned char Data[Q_SIZE];
+	unsigned int Head; // points to oldest data element
+	unsigned int Tail; // points to next free space
+	unsigned int Size; // quantity of elements in queue
+} Q_T;
+Q_T tx_q, rx_q;
+
+void Q_Init(Q_T * q) {
+	unsigned int i;
+	for (i=0; i<Q_SIZE; i++)
+		q->Data[i] = 0; // to simplify our lives when debugging
+	q->Head = 0;
+	q->Tail = 0;
+	q->Size = 0;
+}
+
+int Q_Empty(Q_T * q) {
+	return q->Size == 0;
+}
+
+int Q_Full(Q_T * q) {
+	return q->Size == Q_SIZE;
+}
+
+int Q_Enqueue(Q_T * q, unsigned char d) {
+	// What if queue is full?
+	if (!Q_Full(q)) {
+		q->Data[q->Tail++] = d;
+		q->Tail %= Q_SIZE;
+		q->Size++;
+		return 1; // success
+	}else
+		return 0; // failure
+}
+unsigned char Q_Dequeue(Q_T * q) {
+	// Must check to see if queue is empty before dequeueing
+	unsigned char t=0;
+	if (!Q_Empty(q)) {
+		t = q->Data[q->Head];
+		q->Data[q->Head++] = 0; // to simplify debugging
+		q->Head %= Q_SIZE;
+		q->Size--;
+	}
+	return t;
+}
+
+
 //enumeration state_t to hold the state of led, on or off
 typedef enum{
 	led_on,
@@ -61,18 +109,18 @@ typedef enum{
 
 void InitGPIO(void)
 {
-// Enable Clock to PORTB and PORTD
-SIM->SCGC5 |= ((SIM_SCGC5_PORTB_MASK) | (SIM_SCGC5_PORTD_MASK));
-// Configure MUX settings to make all 3 pins GPIO
-PORTB->PCR[RED_LED] &= ~PORT_PCR_MUX_MASK;
-PORTB->PCR[RED_LED] |= PORT_PCR_MUX(1);
-PORTB->PCR[GREEN_LED] &= ~PORT_PCR_MUX_MASK;
-PORTB->PCR[GREEN_LED] |= PORT_PCR_MUX(1);
-PORTD->PCR[BLUE_LED] &= ~PORT_PCR_MUX_MASK;
-PORTD->PCR[BLUE_LED] |= PORT_PCR_MUX(1);
-// Set Data Direction Registers for PortB and PortD
-PTB->PDDR |= (MASK(RED_LED) | MASK(GREEN_LED));
-PTD->PDDR |= MASK(BLUE_LED);
+	// Enable Clock to PORTB and PORTD
+	SIM->SCGC5 |= ((SIM_SCGC5_PORTB_MASK) | (SIM_SCGC5_PORTD_MASK));
+	// Configure MUX settings to make all 3 pins GPIO
+	PORTB->PCR[RED_LED] &= ~PORT_PCR_MUX_MASK;
+	PORTB->PCR[RED_LED] |= PORT_PCR_MUX(1);
+	PORTB->PCR[GREEN_LED] &= ~PORT_PCR_MUX_MASK;
+	PORTB->PCR[GREEN_LED] |= PORT_PCR_MUX(1);
+	PORTD->PCR[BLUE_LED] &= ~PORT_PCR_MUX_MASK;
+	PORTD->PCR[BLUE_LED] |= PORT_PCR_MUX(1);
+	// Set Data Direction Registers for PortB and PortD
+	PTB->PDDR |= (MASK(RED_LED) | MASK(GREEN_LED));
+	PTD->PDDR |= MASK(BLUE_LED);
 }
 
 /* Init UART2 */
@@ -91,8 +139,8 @@ void initUART2(uint32_t baud_rate)
 	PORTE->PCR[UART_RX_PORTE23] &= ~PORT_PCR_MUX_MASK;
 	PORTE->PCR[UART_RX_PORTE23] |= PORT_PCR_MUX(4);
 	
-	// ensure tx and rx are disabled before configuration
-	UART2->C2 &= ~((UART_C2_TE_MASK) | (UART_C2_RE_MASK));
+	// ensure rx are disabled before configuration
+	UART2->C2 &= ~(UART_C2_TE_MASK | UART_C2_RE_MASK);
 	
 	// Set baud rate to 4800 baud
 	bus_clock = (DEFAULT_SYSTEM_CLOCK)/2;
@@ -106,15 +154,13 @@ void initUART2(uint32_t baud_rate)
 	UART2->C3 = 0;
 	
 	// Enable transmitter and receiver
-	//UART2->C2 |= ((UART_C2_TE_MASK) | (UART_C2_RE_MASK));
-	
-	NVIC_SetPriority(UART2_IRQn, 128); 
-	NVIC_ClearPendingIRQ(UART2_IRQn); 
+	UART2->C2 |= (UART_C2_TE_MASK | UART_C2_RE_MASK);
+	NVIC_SetPriority(UART2_IRQn, 128);
+	NVIC_ClearPendingIRQ(UART2_IRQn);
 	NVIC_EnableIRQ(UART2_IRQn);
-	UART2->C2 |= UART_C2_TIE_MASK | UART_C2_RIE_MASK;
+	
 	UART2->C2 |= UART_C2_RIE_MASK;
 }
-
 
 //delay for about 1 second
 void delay1(){
@@ -136,7 +182,10 @@ void led_control(int LED_COLOR, state_t state){
 	//RED_LED
 	if(LED_COLOR == RED_LED){
 		if(state == led_on){
-			PTB->PCOR = MASK(RED_LED);		}
+			PTB->PCOR = MASK(RED_LED);
+			PTB->PSOR = MASK(GREEN_LED);
+			PTD->PSOR = MASK(BLUE_LED);
+		}
 		else if(state == led_off){
 			offRGB();
 		}
@@ -145,6 +194,8 @@ void led_control(int LED_COLOR, state_t state){
 	if(LED_COLOR == GREEN_LED){
 		if(state == led_on){
 			PTB->PCOR = MASK(GREEN_LED);
+			PTB->PSOR = MASK(RED_LED);
+			PTD->PSOR = MASK(BLUE_LED);	
 		}
 		else if(state == led_off){
 			offRGB();
@@ -154,6 +205,8 @@ void led_control(int LED_COLOR, state_t state){
 	if(LED_COLOR == BLUE_LED){
 		if(state == led_on){
 			PTD->PCOR = MASK(BLUE_LED);	
+			PTB->PSOR = MASK(RED_LED);
+			PTB->PSOR = MASK(GREEN_LED);
 		}
 		else if(state == led_off){
 			offRGB();
@@ -168,10 +221,9 @@ void led_green_thread (void *argument) {
 		
 		led_control(GREEN_LED,led_on);
 		osDelay(1000);
-		//delay(0x80000);
 		led_control(GREEN_LED,led_off);
 		osDelay(1000);
-		//delay(0x80000);
+		
 	}
 }
 
@@ -182,10 +234,8 @@ void led_red_thread (void *argument) {
 		
 		led_control(RED_LED,led_on);
 		osDelay(1000);
-		//delay(0x80000);
 		led_control(RED_LED,led_off);
-		osDelay(1000);
-		//delay(0x80000);
+		osDelay(1000);		
 	}
 }
 
@@ -194,18 +244,18 @@ void UART2_IRQHandler(void) {
 
 	//if receive any data 
 	if (UART2->S1 & UART_S1_RDRF_MASK) {
-		if(LED_MASK(UART2->D) == LED_RED){
-			if(BIT0_MASK(UART2->D)){
-				osSemaphoreRelease(myREDSem);	
-			}
-		}
-		else if(LED_MASK(UART2->D) == LED_GREEN){
-			if(BIT0_MASK(UART2->D)){
-				osSemaphoreRelease(myGREENSem);
+		rx_data = UART2->D;
+		if(LED_MASK(rx_data) == LED_RED){
+			if(BIT0_MASK(rx_data)){
+				osSemaphoreRelease(myREDSem);
 			}
 		}
 	}
-	
+	if(LED_MASK(rx_data) == LED_GREEN){
+		if(BIT0_MASK(rx_data)){
+			osSemaphoreRelease(myGREENSem);
+		}
+	}
 }
  
 int main (void) {

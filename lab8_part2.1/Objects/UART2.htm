@@ -1,9 +1,9 @@
 <!doctype html public "-//w3c//dtd html 4.0 transitional//en">
 <html><head>
-<title>Static Call Graph - [.\Objects\UART2.axf]</title></head>
+<title>Static Call Graph - [.\Objects\UART2.1]</title></head>
 <body><HR>
-<H1>Static Call Graph for image .\Objects\UART2.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Thu Mar 19 08:48:49 2020
+<H1>Static Call Graph for image .\Objects\UART2.1</H1><HR>
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Thu Mar 19 09:30:15 2020
 <BR><P>
 <H3>Maximum Stack Usage =        120 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -868,7 +868,7 @@ Global Symbols
 <P><STRONG><a name="[2b]"></a>SystemInit</STRONG> (Thumb, 8 bytes, Stack size 0 bytes, system_mkl25z4.o(i.SystemInit))
 <BR>[Address Reference Count : 1]<UL><LI> startup_mkl25z4.o(.text)
 </UL>
-<P><STRONG><a name="[19]"></a>UART2_IRQHandler</STRONG> (Thumb, 102 bytes, Stack size 8 bytes, main.o(i.UART2_IRQHandler))
+<P><STRONG><a name="[19]"></a>UART2_IRQHandler</STRONG> (Thumb, 94 bytes, Stack size 8 bytes, main.o(i.UART2_IRQHandler))
 <BR><BR>[Stack]<UL><LI>Max Depth = 56<LI>Call Chain = UART2_IRQHandler &rArr; osSemaphoreRelease &rArr; osRtxPostProcess &rArr; osRtxErrorNotify &rArr; __ARM_common_switch8
 </UL>
 <BR>[Calls]<UL><LI><a href="#[90]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osSemaphoreRelease
@@ -918,7 +918,7 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[54]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__rt_entry_postsh_1
 </UL>
 
-<P><STRONG><a name="[a0]"></a>initUART2</STRONG> (Thumb, 184 bytes, Stack size 16 bytes, main.o(i.initUART2))
+<P><STRONG><a name="[a0]"></a>initUART2</STRONG> (Thumb, 196 bytes, Stack size 16 bytes, main.o(i.initUART2))
 <BR><BR>[Stack]<UL><LI>Max Depth = 24<LI>Call Chain = initUART2 &rArr; __NVIC_SetPriority
 </UL>
 <BR>[Calls]<UL><LI><a href="#[a1]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__NVIC_SetPriority
@@ -928,7 +928,7 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[59]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
 
-<P><STRONG><a name="[a2]"></a>led_control</STRONG> (Thumb, 86 bytes, Stack size 4 bytes, main.o(i.led_control))
+<P><STRONG><a name="[a2]"></a>led_control</STRONG> (Thumb, 120 bytes, Stack size 4 bytes, main.o(i.led_control))
 <BR><BR>[Stack]<UL><LI>Max Depth = 4<LI>Call Chain = led_control
 </UL>
 <BR>[Calls]<UL><LI><a href="#[a3]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;offRGB
