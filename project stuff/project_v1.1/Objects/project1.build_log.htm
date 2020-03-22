@@ -21,13 +21,21 @@ Target DLL:      CMSIS_AGDI.dll V1.32.0.0
 Dialog DLL:      TARMCM1.DLL V1.14.1.0
  
 <h2>Project:</h2>
-C:\Users\s1014\Google drive\semester 4\CG2271\00MDK\Boards\NXP\FRDM-KL25Z\lab8_part2.1\UART2.1.uvprojx
-Project File Date:  03/19/2020
+C:\Users\s1014\Google drive\semester 4\CG2271\00MDK\Boards\NXP\FRDM-KL25Z\project stuff\project_v1.1\project1.1.uvprojx
+Project File Date:  03/21/2020
 
 <h2>Output:</h2>
 *** Using Compiler 'V5.06 update 6 (build 750)', folder: 'C:\Keil_v5\ARM\ARMCC\Bin'
 Build target 'Target 1'
-".\Objects\UART2.1" - 0 Error(s), 0 Warning(s).
+compiling main.c...
+main.c(327): warning:  #1-D: last line of file ends without a newline
+  }
+main.c(51): warning:  #177-D: function "delay"  was declared but never referenced
+  static void delay(volatile uint32_t nof) {
+main.c: 2 warnings, 0 errors
+linking...
+Program Size: Code=9168 RO-data=500 RW-data=5144 ZI-data=360  
+".\Objects\project1.1" - 0 Error(s), 2 Warning(s).
 
 <h2>Software Packages used:</h2>
 
@@ -62,25 +70,25 @@ Package Vendor: Keil
    * Component: ARM::CMSIS:CORE:5.3.0
 
    * Component: ARM::CMSIS:RTOS2:Keil RTX5:Library:5.5.1
-      Include file:  CMSIS\RTOS2\RTX\Include\rtx_os.h
-      Include file:  CMSIS\RTOS2\RTX\Config\RTX_Config.h
-      Source file:   CMSIS\RTOS2\RTX\Template\main.c
-      Source file:   CMSIS\RTOS2\RTX\Template\svc_user.c
-      Source file:   CMSIS\RTOS2\RTX\Template\Mutex.c
-      Source file:   CMSIS\RTOS2\RTX\Config\RTX_Config.c
       Source file:   CMSIS\RTOS2\RTX\Template\Timer.c
+      Source file:   CMSIS\RTOS2\RTX\Template\svc_user.c
       Library file:  CMSIS\RTOS2\RTX\Library\ARM\RTX_CM0.lib
       Source file:   CMSIS\RTOS2\RTX\Source\rtx_lib.c
+      Include file:  CMSIS\RTOS2\RTX\Config\RTX_Config.h
+      Include file:  CMSIS\RTOS2\RTX\Include\rtx_os.h
       Source file:   CMSIS\RTOS2\RTX\Template\Events.c
-      Source file:   CMSIS\RTOS2\RTX\Template\Semaphore.c
       Source file:   CMSIS\RTOS2\RTX\Template\MemPool.c
-      Source file:   CMSIS\RTOS2\RTX\Template\Thread.c
       Source file:   CMSIS\RTOS2\RTX\Template\MsgQueue.c
+      Source file:   CMSIS\RTOS2\RTX\Template\Semaphore.c
+      Source file:   CMSIS\RTOS2\RTX\Template\Mutex.c
+      Source file:   CMSIS\RTOS2\RTX\Template\Thread.c
+      Source file:   CMSIS\RTOS2\RTX\Config\RTX_Config.c
+      Source file:   CMSIS\RTOS2\RTX\Template\main.c
 
    * Component: Keil::Device:Startup:2.5.0
-      Source file:   Device\Source\system_MKL25Z4.c
-      Source file:   Device\Source\ARM\startup_MKL25Z4.s
       Include file:  Device\Source\system_MKL25Z4.h
+      Source file:   Device\Source\ARM\startup_MKL25Z4.s
+      Source file:   Device\Source\system_MKL25Z4.c
 Build Time Elapsed:  00:00:00
 </pre>
 </body>
