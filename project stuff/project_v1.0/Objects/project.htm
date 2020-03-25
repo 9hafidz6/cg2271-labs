@@ -3,7 +3,7 @@
 <title>Static Call Graph - [.\Objects\project.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image .\Objects\project.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Wed Mar 25 14:28:56 2020
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Wed Mar 25 15:05:47 2020
 <BR><P>
 <H3>Maximum Stack Usage =        120 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -516,7 +516,8 @@ Global Symbols
 </UL>
 <BR>[Calls]<UL><LI><a href="#[70]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osRtxPostProcess
 </UL>
-<BR>[Called By]<UL><LI><a href="#[19]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UART2_IRQHandler
+<BR>[Called By]<UL><LI><a href="#[46]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;tbrain
+<LI><a href="#[19]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;UART2_IRQHandler
 </UL>
 
 <P><STRONG><a name="[71]"></a>osEventFlagsWait</STRONG> (Thumb, 68 bytes, Stack size 16 bytes, rtx_evflags.o(.text.osEventFlagsWait))
@@ -991,7 +992,11 @@ Global Symbols
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> main.o(i.main)
 </UL>
-<P><STRONG><a name="[46]"></a>tbrain</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, main.o(i.tbrain))
+<P><STRONG><a name="[46]"></a>tbrain</STRONG> (Thumb, 26 bytes, Stack size 8 bytes, main.o(i.tbrain))
+<BR><BR>[Stack]<UL><LI>Max Depth = 56<LI>Call Chain = tbrain &rArr; osEventFlagsSet &rArr; osRtxPostProcess &rArr; osRtxErrorNotify &rArr; __ARM_common_switch8
+</UL>
+<BR>[Calls]<UL><LI><a href="#[6f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osEventFlagsSet
+</UL>
 <BR>[Address Reference Count : 1]<UL><LI> main.o(i.main)
 </UL><P>
 <H3>
