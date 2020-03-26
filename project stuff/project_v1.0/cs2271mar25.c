@@ -77,14 +77,14 @@ void offRGB(void){
 
 void initPWM(void) {
 	// Enable Clock to PORTB
-  SIM_SCGC5 |= SIM_SCGC5_PORTB_MASK;
+	SIM_SCGC5 |= SIM_SCGC5_PORTB_MASK;
 
 	// Configure MUX settings to enable TPM
-  PORTB->PCR[PTB0_Pin] &= ~PORT_PCR_MUX_MASK;
+  	PORTB->PCR[PTB0_Pin] &= ~PORT_PCR_MUX_MASK;
 	PORTB->PCR[PTB0_Pin] |= PORT_PCR_MUX(3);
 	PORTB->PCR[PTB1_Pin] &= ~PORT_PCR_MUX_MASK;
 	PORTB->PCR[PTB1_Pin] |= PORT_PCR_MUX(3);
-  PORTB->PCR[PTB2_Pin] &= ~PORT_PCR_MUX_MASK;
+ 	PORTB->PCR[PTB2_Pin] &= ~PORT_PCR_MUX_MASK;
 	PORTB->PCR[PTB2_Pin] |= PORT_PCR_MUX(3);
 	PORTB->PCR[PTB3_Pin] &= ~PORT_PCR_MUX_MASK;
 	PORTB->PCR[PTB3_Pin] |= PORT_PCR_MUX(3);
@@ -111,11 +111,10 @@ void initPWM(void) {
 	TPM2->SC |= TPM_SC_PS(7); // Not TPM_SC_CMOD(1)
 	TPM2->SC &= ~(TPM_SC_CPWMS_MASK);
 
-	// Set ELSB and ELSA
+	// Set ELSB and ELSA for TPM1 and TPM2
 	TPM1_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
 	TPM1_C0SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
-	//TPM1_C1SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
-	//TPM1_C1SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
+
 	TPM2_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
 	TPM2_C0SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
 	
@@ -180,25 +179,25 @@ void UART2_IRQHandler(void) {
 
 		switch(rx_data){
 			case 1: TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
-							break;
+					break;
 			case 2: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
-							TPM1_C0V = 2250; // 30%  Duty Cycle
-							break;
+					TPM1_C0V = 2250; // 30%  Duty Cycle
+					break;
 			case 3: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
-							TPM1_C0V = 5250; // 70% Duty Cycle
-							break;
+					TPM1_C0V = 5250; // 70% Duty Cycle
+					break;
 			case 4: TPM2->SC &= ~TPM_SC_CMOD(1); //Disable TPM2
-							break;
+					break;
 			case 5: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
-							TPM2_C0V = 2250; // 30%  Duty Cycle
-							//TPM1_C1V = 2250;
-							break;
+					TPM2_C0V = 2250; // 30%  Duty Cycle
+					//TPM1_C1V = 2250;
+					break;
 			case 6: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
-							TPM2_C0V = 5250; // 70% Duty Cycle
-							//TPM1_C1V = 5250;
-							break;
+					TPM2_C0V = 5250; // 70% Duty Cycle
+					//TPM1_C1V = 5250;
+					break;
 			default:TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
-							TPM2->SC &= ~TPM_SC_CMOD(1); //Disable TPM2
+					TPM2->SC &= ~TPM_SC_CMOD(1); //Disable TPM2
 		}
 	}
 	if (UART2->S1 & (UART_S1_OR_MASK | UART_S1_NF_MASK | UART_S1_FE_MASK | UART_S1_PF_MASK)) {
