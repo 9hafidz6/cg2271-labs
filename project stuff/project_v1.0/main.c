@@ -2,6 +2,9 @@
 #include "RTE_Components.h"
 #include CMSIS_device_header
 #include "cmsis_os2.h"
+
+#include "song.h"
+
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
 #define MASK(x) (1 << (x))
@@ -260,7 +263,10 @@ void left_tMotor(void *argument){
 			case 1: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
 							TPM1_C0V = 2250; // 30%  Duty Cycle
 							break;
-			case 2: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
+			case 2: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
+							TPM1_C0V = 5250; // 70%  Duty Cycle
+							break;
+			case 3: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
 							break;
 			default: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
 		}
@@ -274,7 +280,10 @@ void right_tMotor(void *argument){
 			case 1: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
 							TPM2_C0V = 2250; // 30%  Duty Cycle
 							break;
-			case 2: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
+			case 2: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
+							TPM2_C0V = 5250; // 70%  Duty Cycle
+							break;
+			case 3: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
 							break;
 			default: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
 		}
@@ -302,6 +311,16 @@ void green_tLed(void *argument){
 		}
 	}	
 }
+
+void tAudio(void *argument){
+	for(;;){
+		for(int i=0; i < 203; i++){
+			int wait = duration[i] * songspeed;
+			//tone(buzzer,notes[i],wait);          //tone(pin,frequency,duration)
+			osDelay(wait);
+		}
+	}	
+}
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
 int main (void) {
@@ -318,12 +337,13 @@ int main (void) {
 	osThreadNew(right_tMotor,NULL,NULL);
 	osThreadNew(red_tLed,NULL,NULL);
 	osThreadNew(green_tLed,NULL,NULL);
+	osThreadNew(tAudio,NULL,NULL);
   osKernelStart();                      // Start thread execution
   
 	left_motor_flag = osEventFlagsNew(NULL);	//create event flags for threads
 	right_motor_flag = osEventFlagsNew(NULL);
 	red_led_flag = osEventFlagsNew(NULL);
-	green_led_flag = osEventFlagsNew(NULL);
+	green_led_flag = osEventFlagsNew(NULL); 
 	
 	for (;;) {}
 }
@@ -337,3 +357,4 @@ int main (void) {
 //			1001 (9)
 //led mask(E) -> 3 values
 //bit(11) -> 4 values
+ 
