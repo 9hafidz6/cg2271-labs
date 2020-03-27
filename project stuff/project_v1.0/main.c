@@ -1,29 +1,40 @@
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
 #include "RTE_Components.h"
 #include CMSIS_device_header
 #include "cmsis_os2.h"
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
 #define MASK(x) (1 << (x))
 #define RED_LED 18					// PortB Pin 18 (LED RED)
 #define GREEN_LED 19				// PortB Pin 19 (LED GREEN)
 #define BLUE_LED 1					// PortD Pin 1  (LED BLUE)
-
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
 #define PTB0_Pin 0					// PortB Pin 0  (PWM)
 #define PTB1_Pin 1					// PortB Pin 1  (PWM)
+#define PTB2_Pin 2					// PortB Pin 2  (PWM)
+#define PTB3_Pin 3					// PortB Pin 3  (PWM)
 #define UART_TX_PORTE22 22	// PortE Pin 22 (BT TX)
 #define UART_RX_PORTE23 23	// PortE Pin 23 (BT RX)
-
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
+#define LED_MASK(x) (x & 0x0E) //mask to contrl which component
+#define BIT0_MASK(x) (x & 0x01) //mask to control within each component
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
 #define BAUD_RATE 9600
-
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
 osEventFlagsId_t left_motor_flag;
 osEventFlagsId_t right_motor_flag;
 osEventFlagsId_t green_led_flag;
 osEventFlagsId_t red_led_flag;
+
+int rx_data = 0x69;
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
 void InitGPIO(void){
 	// Enable Clock to PORTB and PORTD
 	SIM->SCGC5 |= ((SIM_SCGC5_PORTB_MASK) | (SIM_SCGC5_PORTC_MASK) | (SIM_SCGC5_PORTD_MASK));
 	
 	// Configure MUX settings to make all 3 pins GPIO
+	//might not need
 	PORTB->PCR[RED_LED] &= ~PORT_PCR_MUX_MASK;
 	PORTB->PCR[RED_LED] |= PORT_PCR_MUX(1);
 	PORTB->PCR[GREEN_LED] &= ~PORT_PCR_MUX_MASK;
@@ -31,6 +42,7 @@ void InitGPIO(void){
 	PORTD->PCR[BLUE_LED] &= ~PORT_PCR_MUX_MASK;
 	PORTD->PCR[BLUE_LED] |= PORT_PCR_MUX(1);
 	
+	//setting GPIO for the Green LED	
 	PORTC->PCR[11] &= ~PORT_PCR_MUX_MASK;
 	PORTC->PCR[11] |= PORT_PCR_MUX(1);
 	PORTC->PCR[10] &= ~PORT_PCR_MUX_MASK;
@@ -53,10 +65,11 @@ void InitGPIO(void){
 	PTC->PDDR |= (MASK(11)|MASK(10)|MASK(6)|MASK(5)|MASK(4)|MASK(3)|MASK(0)|MASK(7));
 	PTD->PDDR |= MASK(BLUE_LED);
 }
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
-void ledControl(int c, int s){
+void ledControl(int c){
 	// The LEDs are active LOW
-	switch(c+s){
+	switch(c){
 		case 1: PTB->PDOR |= MASK(RED_LED);   // Off red led
 			break;
 		case 2: PTB->PDOR |= MASK(GREEN_LED); // Off green led
@@ -73,17 +86,26 @@ void ledControl(int c, int s){
 	}
 }
 
+void offRGB(void){
+	ledControl(1);
+	ledControl(2);
+	ledControl(3);
+}
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
+
 void initPWM(void) {
 	// Enable Clock to PORTB
-  SIM_SCGC5 |= SIM_SCGC5_PORTB_MASK;
+	SIM_SCGC5 |= SIM_SCGC5_PORTB_MASK;
 
 	// Configure MUX settings to enable TPM
-  PORTB->PCR[PTB0_Pin] &= ~PORT_PCR_MUX_MASK;
+  	PORTB->PCR[PTB0_Pin] &= ~PORT_PCR_MUX_MASK;
 	PORTB->PCR[PTB0_Pin] |= PORT_PCR_MUX(3);
 	PORTB->PCR[PTB1_Pin] &= ~PORT_PCR_MUX_MASK;
 	PORTB->PCR[PTB1_Pin] |= PORT_PCR_MUX(3);
-	PORTB->PCR[2] &= ~PORT_PCR_MUX_MASK;
-	PORTB->PCR[2] |= PORT_PCR_MUX(3);
+ 	PORTB->PCR[PTB2_Pin] &= ~PORT_PCR_MUX_MASK;
+	PORTB->PCR[PTB2_Pin] |= PORT_PCR_MUX(3);
+	PORTB->PCR[PTB3_Pin] &= ~PORT_PCR_MUX_MASK;
+	PORTB->PCR[PTB3_Pin] |= PORT_PCR_MUX(3);
 
 	// Enable Clock to TPM
 	SIM_SCGC6 |= SIM_SCGC6_TPM1_MASK;
@@ -96,28 +118,28 @@ void initPWM(void) {
 	// Interesting values
 	TPM1->MOD = 7500;	// 48MHz / (128 * 50)
 	TPM1_C0V = 3750;	// 7500 / 2
-	
 	TPM2->MOD = 7500;
 	TPM2_C0V = 3750;
-	
+
 	// Set clock and prescaler
 	TPM1->SC &= ~((TPM_SC_CMOD_MASK) | (TPM_SC_PS_MASK));
-	TPM1->SC |= (TPM_SC_CMOD(1) | TPM_SC_PS(7));
+	TPM1->SC |= TPM_SC_PS(7); // Not TPM_SC_CMOD(1)
 	TPM1->SC &= ~(TPM_SC_CPWMS_MASK);
-
-	// Set ELSB and ELSA
-	TPM1_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSB_MASK));
-	TPM1_C0SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
-	
-		// Set clock and prescaler
 	TPM2->SC &= ~((TPM_SC_CMOD_MASK) | (TPM_SC_PS_MASK));
-	TPM2->SC |= (TPM_SC_CMOD(1) | TPM_SC_PS(7));
+	TPM2->SC |= TPM_SC_PS(7); // Not TPM_SC_CMOD(1)
 	TPM2->SC &= ~(TPM_SC_CPWMS_MASK);
 
-	// Set ELSB and ELSA
-	TPM2_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSB_MASK));
+	// Set ELSB and ELSA for TPM1 and TPM2
+	TPM1_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
+	TPM1_C0SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
+
+	TPM2_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
 	TPM2_C0SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
+	
+	TPM1->SC &= ~TPM_SC_CMOD(1); // Disable PWM
+	TPM2->SC &= ~TPM_SC_CMOD(1); // Disable PWM
 }
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
 void setFreq(int freq){
   if (freq > 0) {
@@ -129,6 +151,7 @@ void setFreq(int freq){
   	TPM1_C0V = cov;
   }
 }
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
 void Init_UART2(uint32_t baud_rate) {
 	uint32_t divisor, bus_clock;
@@ -171,64 +194,106 @@ void UART2_IRQHandler(void) {
 		//UART2->C2 &= ~UART_C2_TIE_MASK;
 	}
 	if (UART2->S1 & UART_S1_RDRF_MASK) {
-		//When I receive data
-		int rx_data = UART2->D;
-		TPM1->SC |= TPM_SC_CMOD(1); //Enable PWM
+		// On Receive
+		rx_data = UART2->D;
+		//TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
+		//TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
 
-		switch(rx_data){
-			case 1: //TPM1_C0V = 750; //10%
-							//TPM2_C0V = 750;
-							osEventFlagsSet(left_motor_flag,0x0001);
-							osEventFlagsSet(right_motor_flag,0x0001);							
-							break;
-			case 2: TPM1_C0V = 2250; //30%
-							TPM2_C0V = 2250;
-							break;
-			case 3: TPM1_C0V = 3750; //50%
-							TPM2_C0V = 2250;
-							break;
-			case 4: TPM1_C0V = 5250; //70%
-							TPM2_C0V = 2250;
-							break;
-			case 5: TPM1_C0V = 6750; //90%
-							TPM2_C0V = 2250;
-							break;
-			default:TPM1->SC &= ~TPM_SC_CMOD(1); //Disable PWN
-		}
+//		switch(rx_data){
+//			case 1: TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
+//					break;
+//			case 2: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
+//					TPM1_C0V = 2250; // 30%  Duty Cycle
+//					break;
+//			case 3: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
+//					TPM1_C0V = 5250; // 70% Duty Cycle
+//					break;
+//			case 4: TPM2->SC &= ~TPM_SC_CMOD(1); //Disable TPM2
+//					break;
+//			case 5: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
+//					TPM2_C0V = 2250; // 30%  Duty Cycle
+//					//TPM1_C1V = 2250;
+//					break;
+//			case 6: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
+//					TPM2_C0V = 5250; // 70% Duty Cycle
+//					//TPM1_C1V = 5250;
+//					break;
+//			default:TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
+//					TPM2->SC &= ~TPM_SC_CMOD(1); //Disable TPM2
+//		}
 	}
 	if (UART2->S1 & (UART_S1_OR_MASK | UART_S1_NF_MASK | UART_S1_FE_MASK | UART_S1_PF_MASK)) {
 		// handle the error
 		// clear the flag
 	}
 }
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
 void delay(int d){
 	while(d--);
 }
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
-void tbrain(void *argument){
-	//if(rx_data == ){}
-	osEventFlagsSet(left_motor_flag,0x0001);
-	osEventFlagsSet(right_motor_flag,0x0001);		
-}
-void left_motor(void *argument){
+void tBrain(void *argument){
 	for(;;){
-		osEventFlagsWait(left_motor_flag,0x0001, osFlagsWaitAny,osWaitForever);
-		TPM1_C0V = 750; //10%
-		TPM2_C0V = 750;
+		switch(LED_MASK(rx_data)){ //0x0E mask with value is rx_data to choose component
+			case 2: osEventFlagsSet(red_led_flag,0x0001);							
+							break;
+			case 4: //control the green led
+							break;
+			case 8: osEventFlagsSet(right_motor_flag, 0x0001);
+							break;
+			case 16:osEventFlagsSet(left_motor_flag, 0x0001); 
+							break;
+			case 32: //control the buzzer
+							break;
+			default:TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
+							TPM2->SC &= ~TPM_SC_CMOD(1); //Disable TPM2
+		}
 	}
 }
-void right_motor(void *argument){
+
+void left_tMotor(void *argument){
+	for(;;){
+		osEventFlagsWait(left_motor_flag,0x0001, osFlagsWaitAny,osWaitForever);
+		switch(BIT0_MASK(rx_data)){
+			case 1: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
+							TPM1_C0V = 2250; // 30%  Duty Cycle
+							break;
+			case 2: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
+							break;
+			default: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
+		}
+	}
+}
+
+void right_tMotor(void *argument){
 	for(;;){
 		osEventFlagsWait(right_motor_flag,0x0001, osFlagsWaitAny,osWaitForever);
-		TPM1_C0V = 750; //10%
-		TPM2_C0V = 750;
+		switch(BIT0_MASK(rx_data)){
+			case 1: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
+							TPM2_C0V = 2250; // 30%  Duty Cycle
+							break;
+			case 2: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
+							break;
+			default: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
+		}
 	}	
 }
-void red_led(void *argument){
-	//led control 
+
+void red_tLed(void *argument){
+	for(;;){
+		osEventFlagsWait(red_led_flag, 0x0001, osFlagsWaitAny, osWaitForever);
+		switch(BIT0_MASK(rx_data)){
+			//red led on or off
+			case 1: 
+			case 2: 
+			default: offRGB();
+		}
+	}
 }
-void green_led(void *argument){
+
+void green_tLed(void *argument){
 	int array[] = {11,10,6,5,4,3,0,7};
 	for (;;) {
 		for(int i=0; i<8; i++){
@@ -237,6 +302,7 @@ void green_led(void *argument){
 		}
 	}	
 }
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
 int main (void) {
   // System Initialization
@@ -244,23 +310,30 @@ int main (void) {
 	InitGPIO();
 	initPWM();
 	Init_UART2(BAUD_RATE);
-	//ledControl(1,0);
-	//ledControl(2,0);
-	//ledControl(3,0);
  
   osKernelInitialize();                 // Initialize CMSIS-RTOS
   //osThreadNew(app_main, NULL, NULL);    // Create application main thread
-	osThreadNew(tbrain,NULL,NULL);
-	osThreadNew(left_motor,NULL,NULL);
-	osThreadNew(right_motor,NULL,NULL);
-	osThreadNew(red_led,NULL,NULL);
-	osThreadNew(green_led,NULL,NULL);
+	osThreadNew(tBrain,NULL,NULL);
+	osThreadNew(left_tMotor,NULL,NULL);
+	osThreadNew(right_tMotor,NULL,NULL);
+	osThreadNew(red_tLed,NULL,NULL);
+	osThreadNew(green_tLed,NULL,NULL);
   osKernelStart();                      // Start thread execution
   
-	left_motor_flag = osEventFlagsNew(NULL);
+	left_motor_flag = osEventFlagsNew(NULL);	//create event flags for threads
 	right_motor_flag = osEventFlagsNew(NULL);
 	red_led_flag = osEventFlagsNew(NULL);
 	green_led_flag = osEventFlagsNew(NULL);
 	
 	for (;;) {}
 }
+
+//1110 (E)	
+//	0100 (5)
+//	0101 (6)
+//		0010 (3)
+//		0011 (2)
+//			1000 (8)
+//			1001 (9)
+//led mask(E) -> 3 values
+//bit(11) -> 4 values

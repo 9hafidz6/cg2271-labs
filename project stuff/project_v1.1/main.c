@@ -42,9 +42,9 @@ unsigned int time = 240000;
 
 uint8_t rx_data = 0x69;
 
-osSemaphoreId_t myGREENSem;
-osSemaphoreId_t myREDSem;
-const osThreadAttr_t thread_attr = {.priority = osPriorityNormal1};
+//osSemaphoreId_t myGREENSem;
+//osSemaphoreId_t myREDSem;
+//const osThreadAttr_t thread_attr = {.priority = osPriorityNormal1};
 
 /*--------------------------------------------------------------------------------------------------*/
 /* Delay routine */
@@ -115,7 +115,8 @@ unsigned char Q_Dequeue(Q_T * q) {
 void InitGPIO(void)
 {
 	// Enable Clock to PORTB and PORTD
-	SIM->SCGC5 |= ((SIM_SCGC5_PORTB_MASK) | (SIM_SCGC5_PORTD_MASK));
+	SIM->SCGC5 |= ((SIM_SCGC5_PORTB_MASK) | (SIM_SCGC5_PORTC_MASK) | (SIM_SCGC5_PORTD_MASK));
+	
 	// Configure MUX settings to make all 3 pins GPIO
 	PORTB->PCR[RED_LED] &= ~PORT_PCR_MUX_MASK;
 	PORTB->PCR[RED_LED] |= PORT_PCR_MUX(1);
@@ -123,8 +124,27 @@ void InitGPIO(void)
 	PORTB->PCR[GREEN_LED] |= PORT_PCR_MUX(1);
 	PORTD->PCR[BLUE_LED] &= ~PORT_PCR_MUX_MASK;
 	PORTD->PCR[BLUE_LED] |= PORT_PCR_MUX(1);
+	
+	PORTC->PCR[11] &= ~PORT_PCR_MUX_MASK;
+	PORTC->PCR[11] |= PORT_PCR_MUX(1);
+	PORTC->PCR[10] &= ~PORT_PCR_MUX_MASK;
+	PORTC->PCR[10] |= PORT_PCR_MUX(1);
+	PORTC->PCR[6] &= ~PORT_PCR_MUX_MASK;
+	PORTC->PCR[6] |= PORT_PCR_MUX(1);
+	PORTC->PCR[5] &= ~PORT_PCR_MUX_MASK;
+	PORTC->PCR[5] |= PORT_PCR_MUX(1);
+	PORTC->PCR[4] &= ~PORT_PCR_MUX_MASK;
+	PORTC->PCR[4] |= PORT_PCR_MUX(1);
+	PORTC->PCR[3] &= ~PORT_PCR_MUX_MASK;
+	PORTC->PCR[3] |= PORT_PCR_MUX(1);
+	PORTC->PCR[0] &= ~PORT_PCR_MUX_MASK;
+	PORTC->PCR[0] |= PORT_PCR_MUX(1);
+	PORTC->PCR[7] &= ~PORT_PCR_MUX_MASK;
+	PORTC->PCR[7] |= PORT_PCR_MUX(1);
+	
 	// Set Data Direction Registers for PortB and PortD
 	PTB->PDDR |= (MASK(RED_LED) | MASK(GREEN_LED));
+	PTC->PDDR |= (MASK(11)|MASK(10)|MASK(6)|MASK(5)|MASK(4)|MASK(3)|MASK(0)|MASK(7));
 	PTD->PDDR |= MASK(BLUE_LED);
 }
 /*--------------------------------------------------------------------------------------------------*/
@@ -134,77 +154,83 @@ void initUART2(uint32_t baud_rate)
 {
 	uint32_t divisor, bus_clock;
 	
-	// enable clock to UART and Port A
+	// Enable clock to UART and Port E
 	SIM->SCGC4 |= SIM_SCGC4_UART2_MASK;
 	SIM->SCGC5 |= SIM_SCGC5_PORTE_MASK;
 	
-	// connect UART to pins for PTE22, PTE23
-	PORTE->PCR[UART_TX_PORTE22] &= ~PORT_PCR_MUX_MASK;
-	PORTE->PCR[UART_TX_PORTE22] |= PORT_PCR_MUX(4);
+	// Connect UART to pins for PTE22, PTE23
+	PORTE->PCR[22] = PORT_PCR_MUX(4);
+	PORTE->PCR[23] = PORT_PCR_MUX(4);
 	
-	PORTE->PCR[UART_RX_PORTE23] &= ~PORT_PCR_MUX_MASK;
-	PORTE->PCR[UART_RX_PORTE23] |= PORT_PCR_MUX(4);
-	
-	// ensure rx are disabled before configuration
-	UART2->C2 &= ~(UART_C2_TE_MASK | UART_C2_RE_MASK);
+	// Ensure TX and RX are disabled before configuration
+	UART2->C2 &= ~(UARTLP_C2_TE_MASK | UARTLP_C2_RE_MASK);
 	
 	// Set baud rate to 4800 baud
-	bus_clock = (DEFAULT_SYSTEM_CLOCK)/2;
+	bus_clock = (DEFAULT_SYSTEM_CLOCK) / 2;
 	divisor = bus_clock/(baud_rate*16);
-	UART2->BDH = UART_BDH_SBR(divisor >> 8);
+	UART2->BDH = UART_BDH_SBR(divisor>>8);
 	UART2->BDL = UART_BDL_SBR(divisor);
 	
-	// No parity, 8 bits, two stop bits, other settings
-	UART2->C1 = 0;
-	UART2->S2 = 0;
-	UART2->C3 = 0;
+	// No parity, 8 bits, two stop bits, other settings;
+	UART2->C1 = UART2->S2 = UART2->C3 = 0;
 	
 	// Enable transmitter and receiver
-	UART2->C2 |= (UART_C2_TE_MASK | UART_C2_RE_MASK);
+	UART2->C2 = UART_C2_RE_MASK; // Not UART_C2_TE_MASK
+	
+	// Enable Interrupt
 	NVIC_SetPriority(UART2_IRQn, 128);
 	NVIC_ClearPendingIRQ(UART2_IRQn);
 	NVIC_EnableIRQ(UART2_IRQn);
-	
-	UART2->C2 |= UART_C2_RIE_MASK;
+	UART2->C2 |= UART_C2_RIE_MASK; // Not UART_C2_TIE_MASK
 }
 /*--------------------------------------------------------------------------------------------------*/
 
 /* init PWM */
 void initPWM(void){
-	//enable the clock for port B
+	// Enable Clock to PORTB
 	SIM_SCGC5 |= SIM_SCGC5_PORTB_MASK;
-	
-	// configure mux settings to make pinb 0 GPIO 
-	PORTB->PCR[PTB0_Pin] &= ~PORT_PCR_MUX_MASK;
+
+	// Configure MUX settings to enable TPM
+  	PORTB->PCR[PTB0_Pin] &= ~PORT_PCR_MUX_MASK;
 	PORTB->PCR[PTB0_Pin] |= PORT_PCR_MUX(3);
-	
-	// configure mux settings to make pinb 1 GPIO
 	PORTB->PCR[PTB1_Pin] &= ~PORT_PCR_MUX_MASK;
 	PORTB->PCR[PTB1_Pin] |= PORT_PCR_MUX(3);
-	
-	// To enable the clock for timer 1 (TPM1)
-	SIM->SCGC6 |= SIM_SCGC6_TPM1_MASK;
+ 	PORTB->PCR[PTB2_Pin] &= ~PORT_PCR_MUX_MASK;
+	PORTB->PCR[PTB2_Pin] |= PORT_PCR_MUX(3);
+	PORTB->PCR[PTB3_Pin] &= ~PORT_PCR_MUX_MASK;
+	PORTB->PCR[PTB3_Pin] |= PORT_PCR_MUX(3);
 
-	//Turns off Sound initially
-	TPM1->MOD = 0;
-	TPM1_C0V =  0;
-	TPM0->MOD = 0;
-	TPM0_C0V =  0;
-	
-	// clears the SOPT2 to 0
-	//selects the TPM clock source. 
-	//Since 1 is selected, either MCGFLLCLK clock or MCGFLLCLK/2 is used.
+	// Enable Clock to TPM
+	SIM_SCGC6 |= SIM_SCGC6_TPM1_MASK;
+	SIM_SCGC6 |= SIM_SCGC6_TPM2_MASK;
+
+	// Select the MCGFLLCLK clock or MCGPLLCLK/2
 	SIM->SOPT2 &= ~SIM_SOPT2_TPMSRC_MASK;
 	SIM->SOPT2 |= SIM_SOPT2_TPMSRC(1);
-	
-	// 
+
+	// Interesting values
+	TPM1->MOD = 7500;	// 48MHz / (128 * 50)
+	TPM1_C0V = 3750;	// 7500 / 2
+	TPM2->MOD = 7500;
+	TPM2_C0V = 3750;
+
+	// Set clock and prescaler
 	TPM1->SC &= ~((TPM_SC_CMOD_MASK) | (TPM_SC_PS_MASK));
-	TPM1->SC |= (TPM_SC_CMOD(1) | TPM_SC_PS(7));
+	TPM1->SC |= TPM_SC_PS(7); // Not TPM_SC_CMOD(1)
 	TPM1->SC &= ~(TPM_SC_CPWMS_MASK);
+	TPM2->SC &= ~((TPM_SC_CMOD_MASK) | (TPM_SC_PS_MASK));
+	TPM2->SC |= TPM_SC_PS(7); // Not TPM_SC_CMOD(1)
+	TPM2->SC &= ~(TPM_SC_CPWMS_MASK);
+
+	// Set ELSB and ELSA for TPM1 and TPM2
+	TPM1_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
+	TPM1_C0SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
+
+	TPM2_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
+	TPM2_C0SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
 	
-	//
-	TPM1_C0SC &= ~((TPM_CnSC_ELSB_MASK)|(TPM_CnSC_ELSA_MASK)|(TPM_CnSC_MSB_MASK)|(TPM_CnSC_MSA_MASK));
-	TPM1_C0SC |= (TPM_CnSC_ELSB(1)|(TPM_CnSC_MSB(1)));
+	TPM1->SC &= ~TPM_SC_CMOD(1); // Disable PWM
+	TPM2->SC &= ~TPM_SC_CMOD(1); // Disable PWM
 }
 /*--------------------------------------------------------------------------------------------------*/
 
@@ -312,16 +338,13 @@ int main (void) {
  
   // System Initialization
   SystemCoreClockUpdate();
-	InitGPIO();
-	initUART2(BAUD_RATE);
-	offRGB();
+  InitGPIO();
+  initUART2(BAUD_RATE);
+  offRGB();
   // ...
  
   osKernelInitialize();                 // Initialize CMSIS-RTOS
-	myGREENSem = osSemaphoreNew(1,0,NULL);
-	myREDSem = osSemaphoreNew(1,0,NULL);
-	osThreadNew(led_red_thread, NULL, NULL);    // Create application main thread
-	osThreadNew(led_green_thread, NULL, NULL);
+  
   osKernelStart();                      // Start thread execution
   for (;;) {}
 }
