@@ -19,12 +19,13 @@
 #define UART_TX_PORTE22 22	// PortE Pin 22 (BT TX)
 #define UART_RX_PORTE23 23	// PortE Pin 23 (BT RX)
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
-#define LED_MASK(x) (x & 0x0E) //mask to contrl which component
-#define BIT0_MASK(x) (x & 0x01) //mask to control within each component
+#define LED_MASK(x) (x & 0x3E) //mask to contrl which component, 11 1110
+#define BIT0_MASK(x) (x & 0x01) //mask to control within each component, 0001 
+#define BIT00_MASK(x) (x & 0x03) //0011
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 #define BAUD_RATE 9600
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
-osEventFlagsId_t left_motor_flag;
+osEventFlagsId_t left_motor_flag; //event flag for each threads, controlled by thread tbrain
 osEventFlagsId_t right_motor_flag;
 osEventFlagsId_t green_led_flag;
 osEventFlagsId_t red_led_flag;
@@ -240,13 +241,18 @@ void delay(int d){
 void tBrain(void *argument){
 	for(;;){
 		switch(LED_MASK(rx_data)){ //0x0E mask with value is rx_data to choose component
-			case 2: osEventFlagsSet(red_led_flag,0x0001);							
+			case 2: //if rx_data is 0b1x
+							osEventFlagsSet(red_led_flag,0x0001);							
 							break;
-			case 4: //control the green led
+			case 4: //if the robot is stationary, set event
+							//if(){}
+							osEventFlagsSet(green_led_flag,0x0001);
 							break;
-			case 8: osEventFlagsSet(right_motor_flag, 0x0001);
+			case 8: //if rx_data is 0b10xx
+							osEventFlagsSet(right_motor_flag, 0x0001);
 							break;
-			case 16:osEventFlagsSet(left_motor_flag, 0x0001); 
+		  case 16://if rx_data is 0b100xx 
+							osEventFlagsSet(left_motor_flag, 0x0001); 
 							break;
 			case 32: //control the buzzer
 							break;
@@ -259,14 +265,14 @@ void tBrain(void *argument){
 void left_tMotor(void *argument){
 	for(;;){
 		osEventFlagsWait(left_motor_flag,0x0001, osFlagsWaitAny,osWaitForever);
-		switch(BIT0_MASK(rx_data)){
+		switch(BIT00_MASK(rx_data)){
+			case 0: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
+							break;
 			case 1: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
 							TPM1_C0V = 2250; // 30%  Duty Cycle
 							break;
 			case 2: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
 							TPM1_C0V = 5250; // 70%  Duty Cycle
-							break;
-			case 3: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
 							break;
 			default: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
 		}
@@ -276,14 +282,14 @@ void left_tMotor(void *argument){
 void right_tMotor(void *argument){
 	for(;;){
 		osEventFlagsWait(right_motor_flag,0x0001, osFlagsWaitAny,osWaitForever);
-		switch(BIT0_MASK(rx_data)){
+		switch(BIT00_MASK(rx_data)){
+			case 0: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
+							break;
 			case 1: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
 							TPM2_C0V = 2250; // 30%  Duty Cycle
 							break;
 			case 2: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
 							TPM2_C0V = 5250; // 70%  Duty Cycle
-							break;
-			case 3: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
 							break;
 			default: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
 		}
@@ -309,6 +315,8 @@ void green_tLed(void *argument){
 			PTC->PDOR = MASK(array[i]);
 			osDelay(1000);
 		}
+		osEventFlagsWait(green_led_flag, 0x0001, osFlagsWaitAny, osWaitForever);
+		PTC->PDOR = 0b110011111001; //on all green led
 	}	
 }
 
@@ -317,6 +325,7 @@ void tAudio(void *argument){
 		for(int i=0; i < 203; i++){
 			int wait = duration[i] * songspeed;
 			//tone(buzzer,notes[i],wait);          //tone(pin,frequency,duration)
+			//TPM0_C0V = notes[i];s
 			osDelay(wait);
 		}
 	}	
