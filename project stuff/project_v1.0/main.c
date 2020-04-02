@@ -20,7 +20,7 @@
 #define UART_TX_PORTE22 22	// PortE Pin 22 (BT TX)
 #define UART_RX_PORTE23 23	// PortE Pin 23 (BT RX)
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
-#define LED_MASK(x) (x & 0x3C) //mask to contrl which component, 0011 110
+#define LED_MASK(x) (x & 0x7C) //mask to contrl which component, 0011 110
 #define BIT0_MASK(x) (x & 0x01) //mask to control within each component, 0001 
 #define BIT00_MASK(x) (x & 0x03) //0011
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -126,8 +126,10 @@ void initPWM(void) {
 	// Interesting values
 	TPM1->MOD = 7500;	// 48MHz / (128 * 50)
 	TPM1_C0V = 3750;	// 7500 / 2
+	TPM1_C1V = 3750;	
 	TPM2->MOD = 7500;
 	TPM2_C0V = 3750;
+	TPM1_C1V = 3750;	
 
 	// Set clock and prescaler
 	TPM1->SC &= ~((TPM_SC_CMOD_MASK) | (TPM_SC_PS_MASK));
@@ -137,13 +139,19 @@ void initPWM(void) {
 	TPM2->SC |= TPM_SC_PS(7); // Not TPM_SC_CMOD(1)
 	TPM2->SC &= ~(TPM_SC_CPWMS_MASK);
 
-	// Set ELSB and ELSA for TPM1 and TPM2
+	// Set ELSB and ELSA for TPM1 and TPM2 (channel 0)
 	TPM1_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
 	TPM1_C0SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
-
 	TPM2_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
 	TPM2_C0SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
+
+	// Set ELSB and ELSA for TPM1 and TPM2 (channel 1)
+	TPM1_C1SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
+	TPM1_C1SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
+	TPM2_C1SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
+	TPM2_C1SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
 	
+
 	TPM1->SC &= ~TPM_SC_CMOD(1); // Disable PWM
 	TPM2->SC &= ~TPM_SC_CMOD(1); // Disable PWM
 }
@@ -263,6 +271,14 @@ void tBrain(void *argument){
 							break;
 			case 32: //control the buzzer
 							break;
+			case 64: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
+							 TPM2_C0V = 0; // 30%  Duty Cycle
+							 TPM2_C1V = 2250; // 30%  Duty Cycle
+			
+							 TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM2
+							 TPM1_C0V = 0; // 30%  Duty Cycle
+							 TPM1_C1V = 2250; // 30%  Duty Cycle
+							 break;
 			default:TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
 							TPM2->SC &= ~TPM_SC_CMOD(1); //Disable TPM2
 							stationary = true;							
@@ -288,6 +304,9 @@ void green_tLed(void *argument){
 		//osThreadFlagsWait(0x0001, osFlagsWaitAny, osWaitForever);
 		if(stationary == false){
 			for(int i=0; i<8; i++){
+				if(stationary == true){
+					break;
+				}
 				PTC->PDOR = MASK(array[i]);
 				osDelay(1000);
 			}
@@ -307,9 +326,11 @@ void right_tMotor(void *argument){
 							break;
 			case 1: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
 							TPM2_C0V = 5250; // 30%  Duty Cycle
+							TPM2_C1V = 0;
 							break;
 			case 2: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
 							TPM2_C0V = 2250; // 70%  Duty Cycle
+							TPM2_C1V = 0;
 							break;
 			default: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
 							 stationary = true;
@@ -326,9 +347,11 @@ void left_tMotor(void *argument){
 							break;
 			case 1: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
 							TPM1_C0V = 5250; // 30%  Duty Cycle
+							TPM1_C1V = 0;
 							break;
 			case 2: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
 							TPM1_C0V = 2250; // 70%  Duty Cycle
+							TPM1_C1V = 0;
 							break;
 			default: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
 							 stationary = true;
