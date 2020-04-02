@@ -21,7 +21,7 @@
 #define UART_TX_PORTE22 22	// PortE Pin 22 (BT TX)
 #define UART_RX_PORTE23 23	// PortE Pin 23 (BT RX)
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
-#define LED_MASK(x) (x & 0x7C) //mask to contrl which component, 0011 110
+#define COMPONENT_MASK(x) (x & 0x7C) //mask to contrl which component, 0011 110
 #define BIT0_MASK(x) (x & 0x01) //mask to control within each component, 0001 
 #define BIT00_MASK(x) (x & 0x03) //0011
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -29,13 +29,11 @@
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 osThreadId_t left_motor_flag; //event flag for each threads, controlled by thread tbrain
 osThreadId_t right_motor_flag;
-osThreadId_t green_led_flag;
-osThreadId_t red_led_flag;
-osThreadId_t audio_flag;
 
 int rx_data = 0x69;
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 bool stationary = true;
+bool connected = false;
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
 void InitGPIO(void){
@@ -68,6 +66,9 @@ void InitGPIO(void){
 	PORTC->PCR[0] |= PORT_PCR_MUX(1);
 	PORTC->PCR[7] &= ~PORT_PCR_MUX_MASK;
 	PORTC->PCR[7] |= PORT_PCR_MUX(1);
+	//setting for the RED LED
+	PORTC->PCR[9] &= ~PORT_PCR_MUX_MASK;
+	PORTC->PCR[9] |= PORT_PCR_MUX(1);
 	
 	// Set Data Direction Registers for PortB and PortD
 	PTB->PDDR |= (MASK(RED_LED) | MASK(GREEN_LED));
@@ -151,11 +152,13 @@ void initPWM(void) {
 	TPM0->SC &= ~(TPM_SC_CPWMS_MASK);
 	
 
-	// Set ELSB and ELSA for TPM1 and TPM2 (channel 0)
+	// Set ELSB and ELSA for TPM1, TPM2, TPM0 (channel 0)
 	TPM1_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
 	TPM1_C0SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
 	TPM2_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
 	TPM2_C0SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
+	TPM0_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
+	TPM0_C0SC |= (TPM_CnSC_ELSB(1) | TPM_CnSC_MSB(1));
 
 	// Set ELSB and ELSA for TPM1 and TPM2 (channel 1)
 	TPM1_C1SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
@@ -173,10 +176,10 @@ void initPWM(void) {
 
 void setFreq(int freq){
   if (freq > 0) {
-  	double period = 1.0 / freq;
-  	double period_clk = 1.0 / (1.0 * 48000000 / 128);
-  	int mod = (period / period_clk) - 1;
-  	int cov = (mod + 1) / 2;
+    // For a 48MHz clk at 128 prescaler
+  	int clk = 48000000 / 128;
+  	int mod = clk / freq;
+  	int cov = mod / 2; // 50% Duty Cycle
   	TPM0->MOD = mod;
   	TPM0_C0V = cov;
   }
@@ -226,31 +229,10 @@ void UART2_IRQHandler(void) {
 	if (UART2->S1 & UART_S1_RDRF_MASK) {
 		// On Receive
 		rx_data = UART2->D;
-		//TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
-		//TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
-
-//		switch(rx_data){
-//			case 1: TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
-//					break;
-//			case 2: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
-//					TPM1_C0V = 2250; // 30%  Duty Cycle
-//					break;
-//			case 3: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
-//					TPM1_C0V = 5250; // 70% Duty Cycle
-//					break;
-//			case 4: TPM2->SC &= ~TPM_SC_CMOD(1); //Disable TPM2
-//					break;
-//			case 5: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
-//					TPM2_C0V = 2250; // 30%  Duty Cycle
-//					//TPM1_C1V = 2250;
-//					break;
-//			case 6: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
-//					TPM2_C0V = 5250; // 70% Duty Cycle
-//					//TPM1_C1V = 5250;
-//					break;
-//			default:TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
-//					TPM2->SC &= ~TPM_SC_CMOD(1); //Disable TPM2
-//		}
+		if(connected == false){
+			//play a unique tone once 
+			connected = true;
+		}
 	}
 	if (UART2->S1 & (UART_S1_OR_MASK | UART_S1_NF_MASK | UART_S1_FE_MASK | UART_S1_PF_MASK)) {
 		// handle the error
@@ -266,15 +248,7 @@ void delay(int d){
 
 void tBrain(void *argument){
 	for(;;){
-		switch(LED_MASK(rx_data)){ //0x3C, 0011 1100, mask with value is rx_data to choose component
-			case 2: //if the robot is stationary, set event
-							//if(){}
-							osThreadFlagsSet(green_led_flag,0x0001);
-							break;
-			case 4: //if the robot is stationary
-							//if(){}
-							osThreadFlagsSet(red_led_flag,0x0001);							
-							break;
+		switch(COMPONENT_MASK(rx_data)){ //0x3C, 0011 1100, mask with value is rx_data to choose component
 			case 8: //if rx_data is 0b10xx
 							osThreadFlagsSet(right_motor_flag, 0x0001);
 							stationary = false;
@@ -284,9 +258,15 @@ void tBrain(void *argument){
 							stationary = false;
 							break;
 			case 32: //control the buzzer
-							osThreadFlagsSet(audio_flag, 0x0001);
+							if(BIT0_MASK(rx_data)){
+								TPM0->SC |= TPM_SC_CMOD(1); //Enable
+							}
+							else{
+								TPM0->SC &= ~TPM_SC_CMOD(1); //Disable
+							}
 							break;
-			case 64: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
+			case 64: //motor reverse
+							 TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
 							 TPM2_C0V = 0; // 30%  Duty Cycle
 							 TPM2_C1V = 2250; // 30%  Duty Cycle
 			
@@ -294,7 +274,8 @@ void tBrain(void *argument){
 							 TPM1_C0V = 0; // 30%  Duty Cycle
 							 TPM1_C1V = 2250; // 30%  Duty Cycle
 							 break;
-			default:TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
+			default://stop motor
+							TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
 							TPM2->SC &= ~TPM_SC_CMOD(1); //Disable TPM2
 							stationary = true;							
 		}
@@ -304,11 +285,19 @@ void tBrain(void *argument){
 void red_tLed(void *argument){
 	for(;;){
 		//osThreadFlagsWait(0x0001, osFlagsWaitAny, osWaitForever);
-		if(stationary == true){
+		if(stationary){
 			//turn on red led 500ms freq
+			PTC->PDOR |= MASK(9);
+			osDelay(500);
+			PTC->PDOR &= ~MASK(9);
+			osDelay(500);
 		}
 		else{
 			//turn on red led 250ms freq
+			PTC->PDOR |= MASK(9);
+			osDelay(250);
+			PTC->PDOR &= ~MASK(9);
+			osDelay(250);
 		}
 	}
 }
@@ -334,7 +323,6 @@ void green_tLed(void *argument){
 
 void right_tMotor(void *argument){
 	for(;;){
-		//osEventFlagsWait(right_motor_flag,0x0001, osFlagsWaitAny,osWaitForever);
 		osThreadFlagsWait(0x0001, osFlagsWaitAny,osWaitForever);
 		switch(BIT00_MASK(rx_data)){
 			case 0: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
@@ -355,7 +343,6 @@ void right_tMotor(void *argument){
 
 void left_tMotor(void *argument){
 	for(;;){
-		//osEventFlagsWait(left_motor_flag,0x0001, osFlagsWaitAny,osWaitForever);
 		osThreadFlagsWait(0x0001, osFlagsWaitAny,osWaitForever);
 		switch(BIT00_MASK(rx_data)){
 			case 0: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
@@ -376,39 +363,37 @@ void left_tMotor(void *argument){
 
 void tAudio(void *argument){
 	for(;;){
-		//TPM0->SC |= TPM_SC_CMOD(1);						 //enable TPM0
 		for(int i=0; i < 203; i++){
-			if(BIT0_MASK(rx_data)){
-				break;
-			}
 			int wait = duration[i] * songspeed;
 			//tone(buzzer,notes[i],wait);          //tone(pin,frequency,duration)
-			TPM0_C0V = notes[i];									 //play notes from song.h
-			osDelay(wait);
-		}
-		osThreadFlagsWait(0x0001,osFlagsWaitAll, 1);
-		while(1){
-			TPM0_C0V = 290;
+			//TPM0_C0V = notes[i];s
+			setFreq(notes[i]);
+			osDelay(2*wait);
 		}
 	}	
 }
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
+const osThreadAttr_t thread_attr = {
+	.priority = osPriorityBelowNormal2
+};
+
 int main (void) {
   // System Initialization
   SystemCoreClockUpdate();
+	offRGB();
 	InitGPIO();
 	initPWM();
 	Init_UART2(BAUD_RATE);
  
   osKernelInitialize();                 // Initialize CMSIS-RTOS
-	osThreadNew(tBrain,NULL,NULL); 				// Create application main thread
+	osThreadNew(tBrain,NULL,&thread_attr); 				// Create application main thread
 	
 	left_motor_flag =  osThreadNew(left_tMotor,NULL,NULL);
 	right_motor_flag = osThreadNew(right_tMotor,NULL,NULL);
-	red_led_flag = osThreadNew(red_tLed,NULL,NULL);
-	green_led_flag = osThreadNew(green_tLed,NULL,NULL);
-	audio_flag = osThreadNew(tAudio,NULL,NULL);
+	osThreadNew(red_tLed,NULL,NULL);
+	osThreadNew(green_tLed,NULL,NULL);
+	osThreadNew(tAudio,NULL,NULL);
   osKernelStart();                      // Start thread execution
   	
 	for (;;) {}
@@ -423,4 +408,4 @@ int main (void) {
 //			1001 (9)
 //led mask(E) -> 3 values
 //bit(11) -> 4 values
- 
+

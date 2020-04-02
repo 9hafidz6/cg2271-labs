@@ -134,11 +134,3 @@ int duration[] = {         //duration of each note (in ms) Quarter Note is set t
 //	}                        //delay is used so it doesn't go to the next loop before tone is finished playing
 //  //You can click reset on Arduino to replay the song
 //}
-
-void StartMusic(){
-  //
-}
-
-void EndMusic(){
-  //
-}
