@@ -17,6 +17,7 @@
 #define PTB1_Pin 1					// PortB Pin 1  (PWM)
 #define PTB2_Pin 2					// PortB Pin 2  (PWM)
 #define PTB3_Pin 3					// PortB Pin 3  (PWM)
+#define PTC1_Pin 1					// PortC pin 1 	(PWM)
 #define UART_TX_PORTE22 22	// PortE Pin 22 (BT TX)
 #define UART_RX_PORTE23 23	// PortE Pin 23 (BT RX)
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -106,18 +107,21 @@ void initPWM(void) {
 	SIM_SCGC5 |= SIM_SCGC5_PORTB_MASK;
 
 	// Configure MUX settings to enable TPM
-  	PORTB->PCR[PTB0_Pin] &= ~PORT_PCR_MUX_MASK;
+  PORTB->PCR[PTB0_Pin] &= ~PORT_PCR_MUX_MASK;				//motor
 	PORTB->PCR[PTB0_Pin] |= PORT_PCR_MUX(3);
 	PORTB->PCR[PTB1_Pin] &= ~PORT_PCR_MUX_MASK;
 	PORTB->PCR[PTB1_Pin] |= PORT_PCR_MUX(3);
- 	PORTB->PCR[PTB2_Pin] &= ~PORT_PCR_MUX_MASK;
+ 	PORTB->PCR[PTB2_Pin] &= ~PORT_PCR_MUX_MASK;				//motor
 	PORTB->PCR[PTB2_Pin] |= PORT_PCR_MUX(3);
 	PORTB->PCR[PTB3_Pin] &= ~PORT_PCR_MUX_MASK;
 	PORTB->PCR[PTB3_Pin] |= PORT_PCR_MUX(3);
+	PORTC->PCR[PTC1_Pin] &= ~PORT_PCR_MUX_MASK;				//buzzer
+	PORTC->PCR[PTC1_Pin] |= PORT_PCR_MUX(4);	
 
-	// Enable Clock to TPM
+	// Enable Clock to TPM1,TPM2
 	SIM_SCGC6 |= SIM_SCGC6_TPM1_MASK;
 	SIM_SCGC6 |= SIM_SCGC6_TPM2_MASK;
+	SIM_SCGC6 |= SIM_SCGC6_TPM0_MASK;
 
 	// Select the MCGFLLCLK clock or MCGPLLCLK/2
 	SIM->SOPT2 &= ~SIM_SOPT2_TPMSRC_MASK;
@@ -127,9 +131,13 @@ void initPWM(void) {
 	TPM1->MOD = 7500;	// 48MHz / (128 * 50)
 	TPM1_C0V = 3750;	// 7500 / 2
 	TPM1_C1V = 3750;	
+
 	TPM2->MOD = 7500;
 	TPM2_C0V = 3750;
-	TPM1_C1V = 3750;	
+	TPM2_C1V = 3750;	
+
+	TPM0->MOD = 7500;
+	TPM0_C0V = 3750;
 
 	// Set clock and prescaler
 	TPM1->SC &= ~((TPM_SC_CMOD_MASK) | (TPM_SC_PS_MASK));
@@ -138,6 +146,10 @@ void initPWM(void) {
 	TPM2->SC &= ~((TPM_SC_CMOD_MASK) | (TPM_SC_PS_MASK));
 	TPM2->SC |= TPM_SC_PS(7); // Not TPM_SC_CMOD(1)
 	TPM2->SC &= ~(TPM_SC_CPWMS_MASK);
+	TPM0->SC &= ~((TPM_SC_CMOD_MASK) | (TPM_SC_PS_MASK));
+	TPM0->SC |= TPM_SC_PS(7); // Not TPM_SC_CMOD(1)
+	TPM0->SC &= ~(TPM_SC_CPWMS_MASK);
+	
 
 	// Set ELSB and ELSA for TPM1 and TPM2 (channel 0)
 	TPM1_C0SC &= ~((TPM_CnSC_ELSB_MASK) | (TPM_CnSC_ELSA_MASK) | (TPM_CnSC_MSB_MASK) | (TPM_CnSC_MSA_MASK));
@@ -154,6 +166,8 @@ void initPWM(void) {
 
 	TPM1->SC &= ~TPM_SC_CMOD(1); // Disable PWM
 	TPM2->SC &= ~TPM_SC_CMOD(1); // Disable PWM
+	TPM0->SC |= TPM_SC_CMOD(1); // enable buzzer
+	
 }
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
@@ -163,8 +177,8 @@ void setFreq(int freq){
   	double period_clk = 1.0 / (1.0 * 48000000 / 128);
   	int mod = (period / period_clk) - 1;
   	int cov = (mod + 1) / 2;
-  	TPM1->MOD = mod;
-  	TPM1_C0V = cov;
+  	TPM0->MOD = mod;
+  	TPM0_C0V = cov;
   }
 }
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -270,6 +284,7 @@ void tBrain(void *argument){
 							stationary = false;
 							break;
 			case 32: //control the buzzer
+							osThreadFlagsSet(audio_flag, 0x0001);
 							break;
 			case 64: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
 							 TPM2_C0V = 0; // 30%  Duty Cycle
@@ -361,11 +376,19 @@ void left_tMotor(void *argument){
 
 void tAudio(void *argument){
 	for(;;){
+		//TPM0->SC |= TPM_SC_CMOD(1);						 //enable TPM0
 		for(int i=0; i < 203; i++){
+			if(BIT0_MASK(rx_data)){
+				break;
+			}
 			int wait = duration[i] * songspeed;
 			//tone(buzzer,notes[i],wait);          //tone(pin,frequency,duration)
-			//TPM0_C0V = notes[i];s
+			TPM0_C0V = notes[i];									 //play notes from song.h
 			osDelay(wait);
+		}
+		osThreadFlagsWait(0x0001,osFlagsWaitAll, 1);
+		while(1){
+			TPM0_C0V = 290;
 		}
 	}	
 }

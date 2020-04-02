@@ -3,7 +3,7 @@
 <title>Static Call Graph - [.\Objects\project.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image .\Objects\project.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Thu Apr 02 12:14:08 2020
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Thu Apr 02 19:40:03 2020
 <BR><P>
 <H3>Maximum Stack Usage =        120 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -857,7 +857,8 @@ Global Symbols
 <P><STRONG><a name="[a5]"></a>osThreadFlagsWait</STRONG> (Thumb, 40 bytes, Stack size 16 bytes, rtx_thread.o(.text.osThreadFlagsWait))
 <BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = osThreadFlagsWait
 </UL>
-<BR>[Called By]<UL><LI><a href="#[46]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;right_tMotor
+<BR>[Called By]<UL><LI><a href="#[49]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;tAudio
+<LI><a href="#[46]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;right_tMotor
 <LI><a href="#[45]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;left_tMotor
 </UL>
 
@@ -950,7 +951,7 @@ Global Symbols
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> main.o(i.main)
 </UL>
-<P><STRONG><a name="[a7]"></a>initPWM</STRONG> (Thumb, 404 bytes, Stack size 0 bytes, main.o(i.initPWM))
+<P><STRONG><a name="[a7]"></a>initPWM</STRONG> (Thumb, 504 bytes, Stack size 0 bytes, main.o(i.initPWM))
 <BR><BR>[Called By]<UL><LI><a href="#[5b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
 
@@ -999,17 +1000,18 @@ Global Symbols
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> main.o(i.main)
 </UL>
-<P><STRONG><a name="[49]"></a>tAudio</STRONG> (Thumb, 48 bytes, Stack size 0 bytes, main.o(i.tAudio))
-<BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = tAudio &rArr; __aeabi_fmul
+<P><STRONG><a name="[49]"></a>tAudio</STRONG> (Thumb, 94 bytes, Stack size 0 bytes, main.o(i.tAudio))
+<BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = tAudio &rArr; osThreadFlagsWait
 </UL>
-<BR>[Calls]<UL><LI><a href="#[a4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osDelay
+<BR>[Calls]<UL><LI><a href="#[a5]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osThreadFlagsWait
+<LI><a href="#[a4]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osDelay
 <LI><a href="#[ab]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_fmul
 <LI><a href="#[69]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_i2f
 <LI><a href="#[ac]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_f2iz
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> main.o(i.main)
 </UL>
-<P><STRONG><a name="[44]"></a>tBrain</STRONG> (Thumb, 182 bytes, Stack size 0 bytes, main.o(i.tBrain))
+<P><STRONG><a name="[44]"></a>tBrain</STRONG> (Thumb, 192 bytes, Stack size 0 bytes, main.o(i.tBrain))
 <BR><BR>[Stack]<UL><LI>Max Depth = 48<LI>Call Chain = tBrain &rArr; osThreadFlagsSet &rArr; osRtxPostProcess &rArr; osRtxErrorNotify &rArr; __ARM_common_switch8
 </UL>
 <BR>[Calls]<UL><LI><a href="#[93]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;osThreadFlagsSet
