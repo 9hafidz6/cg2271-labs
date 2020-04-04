@@ -72,7 +72,7 @@ void InitGPIO(void){
 	
 	// Set Data Direction Registers for PortB and PortD
 	PTB->PDDR |= (MASK(RED_LED) | MASK(GREEN_LED));
-	PTC->PDDR |= (MASK(11)|MASK(10)|MASK(6)|MASK(5)|MASK(4)|MASK(3)|MASK(0)|MASK(7));
+	PTC->PDDR |= (MASK(9) |MASK(11)|MASK(10)|MASK(6)|MASK(5)|MASK(4)|MASK(3)|MASK(0)|MASK(7));
 	PTD->PDDR |= MASK(BLUE_LED);
 }
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -268,11 +268,12 @@ void tBrain(void *argument){
 			case 64: //motor reverse
 							 TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
 							 TPM2_C0V = 0; // 30%  Duty Cycle
-							 TPM2_C1V = 2250; // 30%  Duty Cycle
+							 TPM2_C1V = 1500; // 30%  Duty Cycle
 			
 							 TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM2
 							 TPM1_C0V = 0; // 30%  Duty Cycle
-							 TPM1_C1V = 2250; // 30%  Duty Cycle
+							 TPM1_C1V = 1500; // 30%  Duty Cycle
+							 stationary = false;
 							 break;
 			default://stop motor
 							TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
@@ -326,13 +327,14 @@ void right_tMotor(void *argument){
 		osThreadFlagsWait(0x0001, osFlagsWaitAny,osWaitForever);
 		switch(BIT00_MASK(rx_data)){
 			case 0: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
+							stationary = true;
 							break;
 			case 1: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
-							TPM2_C0V = 5250; // 30%  Duty Cycle
+							TPM2_C0V = 7500; // 100%  Duty Cycle
 							TPM2_C1V = 0;
 							break;
 			case 2: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
-							TPM2_C0V = 2250; // 70%  Duty Cycle
+							TPM2_C0V = 750; // 10%  Duty Cycle
 							TPM2_C1V = 0;
 							break;
 			default: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
@@ -345,14 +347,15 @@ void left_tMotor(void *argument){
 	for(;;){
 		osThreadFlagsWait(0x0001, osFlagsWaitAny,osWaitForever);
 		switch(BIT00_MASK(rx_data)){
-			case 0: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
+			case 0: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1	
+							stationary = true;
 							break;
 			case 1: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
-							TPM1_C0V = 5250; // 30%  Duty Cycle
+							TPM1_C0V = 7500; // 100%  Duty Cycle
 							TPM1_C1V = 0;
 							break;
 			case 2: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
-							TPM1_C0V = 2250; // 70%  Duty Cycle
+							TPM1_C0V = 750; // 10%  Duty Cycle
 							TPM1_C1V = 0;
 							break;
 			default: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
@@ -368,15 +371,15 @@ void tAudio(void *argument){
 			//tone(buzzer,notes[i],wait);          //tone(pin,frequency,duration)
 			//TPM0_C0V = notes[i];s
 			setFreq(notes[i]);
-			osDelay(2*wait);
+			osDelay(wait);
 		}
 	}	
 }
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
-const osThreadAttr_t thread_attr = {
-	.priority = osPriorityBelowNormal2
-};
+//const osThreadAttr_t thread_attr = {
+//	.priority = osPriorityBelowNormal2
+//};
 
 int main (void) {
   // System Initialization
@@ -387,7 +390,7 @@ int main (void) {
 	Init_UART2(BAUD_RATE);
  
   osKernelInitialize();                 // Initialize CMSIS-RTOS
-	osThreadNew(tBrain,NULL,&thread_attr); 				// Create application main thread
+	osThreadNew(tBrain,NULL,NULL); 				// Create application main thread
 	
 	left_motor_flag =  osThreadNew(left_tMotor,NULL,NULL);
 	right_motor_flag = osThreadNew(right_tMotor,NULL,NULL);
