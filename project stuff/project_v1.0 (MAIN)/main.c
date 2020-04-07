@@ -32,7 +32,7 @@ osThreadId_t right_motor_flag;
 
 int rx_data = 0x69;
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
-bool stationary = true;
+volatile bool stationary = true;
 bool connected = false;
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
@@ -186,6 +186,11 @@ void setFreq(int freq){
 }
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
+void delay(int d){
+	while(d--);
+}
+/*--------------------------------------------------------------------------------------------------------------------------------------------*/
+
 void Init_UART2(uint32_t baud_rate) {
 	uint32_t divisor, bus_clock;
 	
@@ -231,6 +236,16 @@ void UART2_IRQHandler(void) {
 		rx_data = UART2->D;
 		if(connected == false){
 			//play a unique tone once 
+			PTC->PDOR = 0b001100000110; //off all green led
+			delay(1000);
+			PTC->PDOR = 0b110011111001; //on all green led
+			delay(1000);
+			setFreq(50);
+			delay(1000);
+			setFreq(150);
+			delay(1000);
+			setFreq(250);
+			delay(1000);
 			connected = true;
 		}
 	}
@@ -239,11 +254,7 @@ void UART2_IRQHandler(void) {
 		// clear the flag
 	}
 }
-/*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
-void delay(int d){
-	while(d--);
-}
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
 void tBrain(void *argument){
@@ -267,12 +278,12 @@ void tBrain(void *argument){
 							break;
 			case 64: //motor reverse
 							 TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
-							 TPM2_C0V = 0; // 30%  Duty Cycle
-							 TPM2_C1V = 1500; // 30%  Duty Cycle
+							 TPM2_C0V = 0; // 0%  Duty Cycle
+							 TPM2_C1V = 1500; // 20%  Duty Cycle
 			
 							 TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM2
-							 TPM1_C0V = 0; // 30%  Duty Cycle
-							 TPM1_C1V = 1500; // 30%  Duty Cycle
+							 TPM1_C0V = 0; // 0%  Duty Cycle
+							 TPM1_C1V = 1500; // 20%  Duty Cycle
 							 stationary = false;
 							 break;
 			default://stop motor
@@ -286,7 +297,7 @@ void tBrain(void *argument){
 void red_tLed(void *argument){
 	for(;;){
 		//osThreadFlagsWait(0x0001, osFlagsWaitAny, osWaitForever);
-		if(stationary){
+		if(stationary == true){
 			//turn on red led 500ms freq
 			PTC->PDOR |= MASK(9);
 			osDelay(500);
@@ -334,7 +345,7 @@ void right_tMotor(void *argument){
 							TPM2_C1V = 0;
 							break;
 			case 2: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
-							TPM2_C0V = 750; // 10%  Duty Cycle
+							TPM2_C0V = 1500; // 20%  Duty Cycle
 							TPM2_C1V = 0;
 							break;
 			default: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
@@ -355,7 +366,7 @@ void left_tMotor(void *argument){
 							TPM1_C1V = 0;
 							break;
 			case 2: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
-							TPM1_C0V = 750; // 10%  Duty Cycle
+							TPM1_C0V = 1500; // 20%  Duty Cycle
 							TPM1_C1V = 0;
 							break;
 			default: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
@@ -368,7 +379,6 @@ void tAudio(void *argument){
 	for(;;){
 		for(int i=0; i < 203; i++){
 			int wait = duration[i] * songspeed;
-			//tone(buzzer,notes[i],wait);          //tone(pin,frequency,duration)
 			//TPM0_C0V = notes[i];s
 			setFreq(notes[i]);
 			osDelay(wait);
