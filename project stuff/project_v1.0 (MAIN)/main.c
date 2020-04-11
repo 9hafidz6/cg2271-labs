@@ -169,7 +169,7 @@ void initPWM(void) {
 
 	TPM1->SC &= ~TPM_SC_CMOD(1); // Disable PWM
 	TPM2->SC &= ~TPM_SC_CMOD(1); // Disable PWM
-	TPM0->SC |= TPM_SC_CMOD(1); // enable buzzer
+	TPM0->SC &= ~TPM_SC_CMOD(1); // Disable Buzzer
 	
 }
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -236,16 +236,18 @@ void UART2_IRQHandler(void) {
 		rx_data = UART2->D;
 		if(connected == false){
 			//play a unique tone once 
-			PTC->PDOR = 0b001100000110; //off all green led
+			PTC->PDOR = 0; //off all green led
 			delay(1000);
-			PTC->PDOR = 0b110011111001; //on all green led
+			PTC->PDOR = 0; //on all green led
 			delay(1000);
+			TPM0->SC |= TPM_SC_CMOD(1); // Enable Buzzer
 			setFreq(50);
 			delay(1000);
 			setFreq(150);
 			delay(1000);
 			setFreq(250);
 			delay(1000);
+			TPM0->SC &= ~TPM_SC_CMOD(1); // Disable Buzzer
 			connected = true;
 		}
 	}
@@ -261,12 +263,10 @@ void tBrain(void *argument){
 	for(;;){
 		switch(COMPONENT_MASK(rx_data)){ //0x3C, 0011 1100, mask with value is rx_data to choose component
 			case 8: //if rx_data is 0b10xx
-							osThreadFlagsSet(right_motor_flag, 0x0001);
-							stationary = false;
+							osThreadFlagsSet(left_motor_flag, 0x0001);
 							break;
 		  case 16://if rx_data is 0b100xx  
-							osThreadFlagsSet(left_motor_flag, 0x0001);
-							stationary = false;
+							osThreadFlagsSet(right_motor_flag, 0x0001);
 							break;
 			case 32: //control the buzzer
 							if(BIT0_MASK(rx_data)){
@@ -281,10 +281,15 @@ void tBrain(void *argument){
 							 TPM2_C0V = 0; // 0%  Duty Cycle
 							 TPM2_C1V = 1500; // 20%  Duty Cycle
 			
-							 TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM2
+							 TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
 							 TPM1_C0V = 0; // 0%  Duty Cycle
 							 TPM1_C1V = 1500; // 20%  Duty Cycle
 							 stationary = false;
+			
+//							 osDelay(1000);
+//							 TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
+//							 TPM2->SC &= ~TPM_SC_CMOD(1); //Disable TPM2
+//							 stationary = true;
 							 break;
 			default://stop motor
 							TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
@@ -343,10 +348,20 @@ void right_tMotor(void *argument){
 			case 1: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
 							TPM2_C0V = 7500; // 100%  Duty Cycle
 							TPM2_C1V = 0;
+							stationary = false;
+//							//so that it does not go continuously
+//							osDelay(500);
+//							TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
+//							stationary = true;
 							break;
 			case 2: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
-							TPM2_C0V = 1500; // 20%  Duty Cycle
+							TPM2_C0V = 900; // 12%  Duty Cycle
 							TPM2_C1V = 0;
+							stationary = false;
+//							//so that it does not go continuously 
+//							osDelay(500);
+//							TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
+//							stationary = true;
 							break;
 			default: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
 							 stationary = true;
@@ -364,10 +379,20 @@ void left_tMotor(void *argument){
 			case 1: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
 							TPM1_C0V = 7500; // 100%  Duty Cycle
 							TPM1_C1V = 0;
+							stationary = false;
+//							//so that it does not go continuously
+//							osDelay(500);
+//							TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
+//							stationary = true;
 							break;
 			case 2: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
-							TPM1_C0V = 1500; // 20%  Duty Cycle
+							TPM1_C0V = 900; // 12%  Duty Cycle
 							TPM1_C1V = 0;
+							stationary = false;
+//							//so that it does not go continuously
+//							osDelay(500);
+//							TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
+//							stationary = true;
 							break;
 			default: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
 							 stationary = true;
@@ -388,7 +413,7 @@ void tAudio(void *argument){
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
 //const osThreadAttr_t thread_attr = {
-//	.priority = osPriorityBelowNormal2
+//	.priority = osPriorityNormal1
 //};
 
 int main (void) {
