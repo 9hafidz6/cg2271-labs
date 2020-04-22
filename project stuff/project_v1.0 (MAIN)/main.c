@@ -31,6 +31,7 @@
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 osThreadId_t left_motor_flag; //event flag for each threads, controlled by thread tbrain
 osThreadId_t right_motor_flag;
+osThreadId_t audio_flag;
 
 int rx_data = 0x69;
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -280,17 +281,20 @@ void UART2_IRQHandler(void) {
 	if (UART2->S1 & UART_S1_RDRF_MASK) {
 		// On Receive
 		if(connected == false){
-			//play a unique tone once and blink green LED
+			//play a unique tone once and blink green LED twice
+			PTC->PDOR = 0b000000000000; //off all green led
+			delay(1000000);
+			PTC->PDOR |= 0b110011111001; //on all green led
+			delay(1000000);
 			PTC->PDOR = 0b000000000000; //off all green led
 			delay(1000000);
 			PTC->PDOR |= 0b110011111001; //on all green led
 			delay(1000000);
 			PTC->PDOR = 0b000000000000; //off all green led
 			TPM0->SC |= TPM_SC_CMOD(1); // Enable Buzzer
-			for(int a = 0; a < 10; a++){
+			for(int a = 0; a < 1000; a += 100){
 				TPM0_C0V = a;
-				a += 100;
-				delay(1000000);
+				delay(100000);
 			}
 			TPM0->SC &= ~TPM_SC_CMOD(1); // Disable Buzzer
 			connected = true;
@@ -314,7 +318,7 @@ void tBrain(void *argument){
 	for(;;){
 		rx_data = Q_Dequeue(&RxQ);
 		switch(COMPONENT_MASK(rx_data)){ //0x3C, 0011 1100, mask with value is rx_data to choose component
-			case 0:
+			case 0: //no more data in queue
 				TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
 				TPM2->SC &= ~TPM_SC_CMOD(1); //Disable TPM2	
 				stationary = true;
@@ -334,27 +338,19 @@ void tBrain(void *argument){
 					TPM0->SC |= TPM_SC_CMOD(1); //Enable
 				}
 				else{
-					for(int a = 0; a < 10; a++){
+					//disable the audio thread as course is finished
+					osThreadTerminate(audio_flag);
+					for(int a = 1000; a > 0; a -= 100){
 						TPM0_C0V = a;
-						a += 100;
-						delay(1000000);
+						delay(100000);
 					}
 					TPM0->SC &= ~TPM_SC_CMOD(1); //Disable
 				}
 				break;
 			case 64: //motor reverse
-				TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
-				TPM2_C0V = 0; // 0%  Duty Cycle
-				TPM2_C1V = 1500; // 20%  Duty Cycle
-			  TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
-				TPM1_C0V = 0; // 0%  Duty Cycle
-				TPM1_C1V = 1500; // 20%  Duty Cycle
+				osThreadFlagsSet(left_motor_flag, 0x0001);
+				osThreadFlagsSet(right_motor_flag, 0x0001);
 				stationary = false;
-			
-//							 osDelay(1000);
-//							 TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
-//							 TPM2->SC &= ~TPM_SC_CMOD(1); //Disable TPM2
-//							 stationary = true;
 				break;
 			default://stop motor
 				TPM1->SC &= ~TPM_SC_CMOD(1); //Disable TPM1
@@ -369,18 +365,18 @@ void red_tLed(void *argument){
 	for(;;){
 		//osThreadFlagsWait(0x0001, osFlagsWaitAny, osWaitForever);
 		if(stationary){
-			//turn on red led 500ms freq
-			PTC->PDOR |= MASK(9);
-			osDelay(500);
-			PTC->PDOR &= ~MASK(9);
-			osDelay(500);
-		}
-		else{
 			//turn on red led 250ms freq
 			PTC->PDOR |= MASK(9);
 			osDelay(250);
 			PTC->PDOR &= ~MASK(9);
 			osDelay(250);
+		}
+		else{
+			//turn on red led 500ms freq
+			PTC->PDOR |= MASK(9);
+			osDelay(500);
+			PTC->PDOR &= ~MASK(9);
+			osDelay(500);
 		}
 	}
 }
@@ -410,9 +406,6 @@ void right_tMotor(void *argument){
 	for(;;){
 		osThreadFlagsWait(0x0001, osFlagsWaitAny,osWaitForever);
 		switch(BIT00_MASK(rx_data)){
-			case 0: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
-							stationary = true;
-							break;
 			case 1: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
 							TPM2_C0V = 7500; // 100%  Duty Cycle
 							TPM2_C1V = 0;
@@ -421,6 +414,11 @@ void right_tMotor(void *argument){
 			case 2: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
 							TPM2_C0V = 1500; // 20%  Duty Cycle
 							TPM2_C1V = 0;
+							stationary = false;
+							break;
+			case 3: TPM2->SC |= TPM_SC_CMOD(1); // Enable TPM2
+							TPM2_C0V = 0; // 0%  Duty Cycle
+							TPM2_C1V = 1500; // 20%  Duty Cycle
 							stationary = false;
 							break;
 			default: TPM2->SC &= ~TPM_SC_CMOD(1); // Disable TPM2
@@ -433,9 +431,6 @@ void left_tMotor(void *argument){
 	for(;;){
 		osThreadFlagsWait(0x0001, osFlagsWaitAny,osWaitForever);
 		switch(BIT00_MASK(rx_data)){
-			case 0: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1	
-							stationary = true;
-							break;
 			case 1: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
 							TPM1_C0V = 7500; // 100%  Duty Cycle
 							TPM1_C1V = 0;
@@ -444,6 +439,11 @@ void left_tMotor(void *argument){
 			case 2: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
 							TPM1_C0V = 1500; // 20%  Duty Cycle
 							TPM1_C1V = 0;
+							stationary = false;
+							break;
+			case 3: TPM1->SC |= TPM_SC_CMOD(1); // Enable TPM1
+							TPM1_C0V = 0; // 0%  Duty Cycle
+							TPM1_C1V = 1500; // 20%  Duty Cycle
 							stationary = false;
 							break;
 			default: TPM1->SC &= ~TPM_SC_CMOD(1); // Disable TPM1
@@ -485,7 +485,7 @@ int main (void) {
 	right_motor_flag = osThreadNew(right_tMotor,NULL,NULL);
 	osThreadNew(red_tLed,NULL,NULL);
 	osThreadNew(green_tLed,NULL,NULL);
-	osThreadNew(tAudio,NULL,NULL);
+	audio_flag = osThreadNew(tAudio,NULL,NULL);
   osKernelStart();                      // Start thread execution
   	
 	for (;;) {}
