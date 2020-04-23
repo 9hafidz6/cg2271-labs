@@ -396,7 +396,8 @@ void green_tLed(void *argument){
 				}
 			}
 			else{
-				PTC->PDOR = 0b110011111001; //on all green led		
+				PTC->PDOR = 0b110011111001; //on all green led
+				osDelay(1000);
 			}
 		}
 	}	
@@ -467,7 +468,7 @@ void tAudio(void *argument){
 /*--------------------------------------------------------------------------------------------------------------------------------------------*/
 
 //const osThreadAttr_t thread_attr = {
-//	.priority = osPriorityNormal1
+//	.priority = osPriorityBelowNormal2
 //};
 
 int main (void) {
